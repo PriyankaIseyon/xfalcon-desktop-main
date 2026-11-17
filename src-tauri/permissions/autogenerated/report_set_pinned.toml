@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-report-set-pinned"
+description = "Enables the report_set_pinned command without any pre-configured scope."
+commands.allow = ["report_set_pinned"]
+
+[[permission]]
+identifier = "deny-report-set-pinned"
+description = "Denies the report_set_pinned command without any pre-configured scope."
+commands.deny = ["report_set_pinned"]

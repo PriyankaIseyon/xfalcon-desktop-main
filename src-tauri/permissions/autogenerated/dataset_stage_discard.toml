@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-dataset-stage-discard"
+description = "Enables the dataset_stage_discard command without any pre-configured scope."
+commands.allow = ["dataset_stage_discard"]
+
+[[permission]]
+identifier = "deny-dataset-stage-discard"
+description = "Denies the dataset_stage_discard command without any pre-configured scope."
+commands.deny = ["dataset_stage_discard"]

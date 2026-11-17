@@ -1,0 +1,282 @@
+[package]
+name = "xfalcon-desktop"
+version = "0.5.51"
+description = "xFalcon AI desktop application"
+authors = ["xFalcon"]
+edition = "2021"
+publish = false
+
+[lib]
+name = "xfalcon_desktop_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[features]
+# Serves the frontend from the built `dist/` over the app protocol instead of the
+# dev server, exactly as Tauri's CLI does for `tauri build`. Declared so the app
+# can be run that way with a plain `cargo run --features custom-protocol` — the
+# CLI is unusable on a checkout whose `node_modules` was installed for another
+# platform, and the dev-server path additionally depends on the host being able
+# to reach a WSL-hosted listener. `debug_assertions` still applies, so `.env` is
+# still loaded (see `load_workspace_dotenv`).
+custom-protocol = ["tauri/custom-protocol"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+# Pins the bundled tenant config to the binary (see `build.rs`).
+sha2 = "0.10"
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-opener = "2"
+tauri-plugin-dialog = "2"
+# Exact pin keeps the audited manifest and installer behavior stable. This
+# release does not expose a manifest body-size limit, which is tracked in TM-010.
+# Disable legacy Windows ZIP installers: delivery uses signed EXE/MSI files.
+# macOS tar.gz installation has unconditional tar/flate2 dependencies upstream.
+tauri-plugin-updater = { version = "=2.10.1", default-features = false, features = ["rustls-tls"] }
+
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+reqwest = { version = "0.13.4", features = ["json", "stream", "form", "query"] }
+tokio = { version = "1", features = ["full"] }
+base64 = "0.22"
+# Verifies updater bytes downloaded by the bounded native client. The Tauri
+# plugin verifies only inside its own unbounded downloader, while its installer
+# API accepts caller-verified bytes.
+minisign-verify = "0.2"
+futures-util = "0.3"
+anyhow = "1.0"
+aes-gcm = "0.10"
+async-trait = "0.1"
+chrono = { version = "0.4", features = ["serde"] }
+http = "1.3"
+indexmap = { version = "2.11", features = ["serde"] }
+# Uses the AWS-LC provider already present through rustls. This keeps the JWT
+# algorithms below while avoiding RustCrypto's vulnerable crypto-bigint 0.5 chain.
+jsonwebtoken = { version = "10.4", default-features = false, features = ["aws_lc_rs"] }
+keyring = "4.1.5"
+keyring-core = "1.0"
+oas3-gen-support = "=0.26.2"
+regex = "1.12"
+rusqlite = { version = "0.37", features = ["bundled"] }
+sha2 = "0.10"
+serde_with = "3.15"
+# Parses untrusted `SKILL.md` frontmatter (`src-tauri/src/skills/manifest.rs`,
+# threat model TM-006). Pure Rust, no `unsafe-libyaml`: `serde_yaml` (archived
+# 2024) and its fork `serde_yaml_ng` both sit on that unmaintained C-derived
+# parser (RUSTSEC-2024-0449). `serde-saphyr` is actively released (1.0 on
+# 2026-07-31) and bounds nesting, aliases and anchors by default.
+serde-saphyr = "1.3"
+thiserror = "2.0"
+tracing = "0.1"
+tracing-appender = "0.2"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+uuid = { version = "1.18", features = ["serde", "v4", "v5"] }
+rand = "0.9"
+subtle = "2.6"
+tokio-util = "0.7"
+validator = { version = "0.20", features = ["derive"] }
+# Reads skill archives the user imports (`src-tauri/src/skills/store.rs`).
+# Read-only and deflate-only: this app never writes a zip, and the archive is
+# untrusted input, so every codec it does not need is surface it does not want.
+# Entry paths are never written to disk -- a candidate is parsed in memory and
+# stored under its own manifest's slug -- so zip-slip is structurally absent
+# rather than defended against.
+zip = { version = "9.0.5", default-features = false, features = ["deflate"] }
+quick-xml = "0.41"
+cfb = "0.7.3"
+# Reads the leading rows of a picked `.csv` for the pre-upload confirmation
+# step, and rewrites the file when a cleanup recipe is applied
+# (`src-tauri/src/datasets/preview.rs`, `recipe.rs`). RFC 4180 quoting -- an
+# embedded delimiter, an embedded newline, a doubled quote -- is exactly the
+# kind of primitive this repo does not hand-roll, and a preview that disagrees
+# with the server's parse is worse than no preview.
+csv = "1.4"
+# Reads worksheet names and the leading rows of a picked `.xlsx`
+# (`src-tauri/src/datasets/preview.rs`). `zip` and `quick-xml` are already in
+# the tree, but nothing here decodes OOXML: a worksheet cell resolves through
+# the shared-string table, inline strings, and a serial date, and getting any
+# of those wrong shows a person the wrong data on the one screen where they
+# confirm what they are uploading. No features: `ExcelDateTime::to_ymd_hms_milli`
+# converts a serial date without `chrono`, and `picture` would decode an
+# embedded image, which is not tabular data.
+calamine = { version = "0.38", default-features = false }
+zeroize = "1.8"
+dotenvy = "0.15"
+flate2 = "1.1"
+xfalcon-contracts = { path = "../crates/contracts" }
+rmcp = { version = "=2.2.0", default-features = false, features = [
+    "client",
+    "transport-streamable-http-client-reqwest",
+    "reqwest",
+] }
+jsonschema = { version = "0.30", default-features = false }
+# Named directly (not just transitively via rmcp) so `mcp::client`'s bounded
+# `StreamableHttpClient` impl can name `sse_stream::Sse`/`Error` in its own
+# method signatures, matching rmcp's own required trait shape exactly.
+sse-stream = "0.2"
+bytes = "1"
+# Capability-based filesystem access for trusted-project containment
+# (`src-tauri/src/projects`): `Dir::open_ambient_dir` turns a canonicalized,
+# user-trusted root into a handle every subsequent relative open/create is
+# resolved against, so a symlink/junction/reparse point planted inside the
+# root (even one that appears only mid-resolution, defeating a naive
+# canonicalize-then-`starts_with` check) cannot resolve outside it -- see
+# `docs/decisions.md` for the
+# dependency evaluation (Bytecode Alliance, protects against CWE-22, no
+# viable alternative found in `source-examples/*` beyond hand-rolled
+# `openat`/reparse-point FFI).
+cap-std = "4"
+# Bounded, gitignore/`.ignore`-aware directory walker for incremental project
+# indexing (`src-tauri/src/projects/index.rs`): `ignore::WalkParallel` is
+# ripgrep's own traversal engine (BurntSushi, Unlicense OR MIT, latest
+# release 0.4.31 published 2026-07-20 -- checked via
+# `https://crates.io/api/v1/crates/ignore` -- part of the actively
+# maintained `BurntSushi/ripgrep` workspace), matching this plan's own tech
+# stack line ("ignore/globset/grep-searcher"). It only ever *proposes*
+# candidate relative-path strings from a already-canonicalized, trusted
+# starting directory; every candidate is independently re-validated through
+# `projects::path_policy::RelativeProjectPath` and
+# `projects::domain::TrustedRoot` before any content, size, or hash is
+# recorded -- see that module's doc comment and
+# `docs/decisions.md`
+# for the full dependency evaluation and the "propose, then re-validate"
+# design rationale. Defaults to not following symlinks (defense in depth,
+# not the only layer -- `TrustedRoot` independently rejects any symlink/
+# reparse point it encounters regardless of this default).
+ignore = "0.4"
+# `globset` compiles the fixed, built-in secret-file deny patterns and any
+# caller-supplied "configured secret class" patterns
+# (`src-tauri/src/projects/sensitive.rs`). Adding it as a direct dependency
+# introduces no new transitive surface: `ignore` (above) already depends on
+# it internally to compile `.gitignore`/`.ignore` patterns, so this only
+# promotes an already-required-to-be-vetted crate to direct use. Same
+# maintainer/workspace/license as `ignore` (BurntSushi/ripgrep, Unlicense OR
+# MIT, latest release 0.4.19 published 2026-07-15 -- checked via
+# `https://crates.io/api/v1/crates/globset`). Chosen over hand-rolled glob
+# matching because secret-file classification is a security control
+# (`docs/threat-model.md` TM-006's "sensitive-file deny rules") --
+# the same "prefer a vetted, minimal dependency over a custom implementation
+# of a security-relevant primitive" bar this project applies to cryptographic
+# and auth code.
+globset = "0.4"
+# BLAKE3 content hashing for the patch/approval subsystem
+# (`src-tauri/src/projects/patch.rs`, `src-tauri/src/projects/writer.rs`):
+# base/proposed file hashes and the plan's own content-addressed id. This is
+# a deliberate, narrower choice than Task 5's rejection of `blake3` in favor
+# of the already-present `sha2`/`Sha256` (see
+# `docs/decisions.md`,
+# "Rejected patterns" -- that task's hashing is a background-thread indexing
+# concern with no interactive latency budget). Task 6's `MutationPlan::propose`
+# instead runs synchronously on an interactive approval path (a human is
+# waiting to review the diff before every mutation), and the plan's own
+# content-addressed id additionally hashes every base/proposed hash together
+# -- BLAKE3's much lower per-call overhead and its built-in keyed/context
+# modes (unused today, but available without a second dependency if a future
+# task needs domain-separated hashing here) make it the better fit for this
+# specific synchronous, human-in-the-loop path, independent of Task 5's own
+# correct decision for its own background pass. BLAKE3 team (O(1) Labs/
+# Sean Bowe et al under the `BLAKE3-team` GitHub org), CC0-1.0 OR Apache-2.0
+# OR Apache-2.0 WITH LLVM-exception, latest release 1.8.5 confirmed current
+# via `cargo add blake3 --dry-run` and `https://crates.io/api/v1/crates/blake3`.
+blake3 = "1.8.5"
+# Unified-diff generation for human mutation-plan review
+# (`MutationPlan::propose`'s `unified_diff` field, plan doc line 11's own
+# tech-stack list). Mitsuhiko/insta author's `similar`, MIT, latest release
+# 3.1.1 confirmed current via `cargo add similar --dry-run` and
+# `https://crates.io/api/v1/crates/similar`; chosen over hand-rolled line
+# diffing because a correct, human-reviewable diff is itself a security
+# control here (TM-006: a human must be able to see what a mutation actually
+# does before approving it), the same "prefer a vetted, minimal dependency
+# for a security-relevant primitive over a custom implementation" bar this
+# project already applies elsewhere (`globset`/`ignore` above, `cap-std`
+# below).
+similar = "3.1.1"
+# A dataset download must replace the chosen file only after every byte is on
+# disk. `tokio::fs::rename` cannot replace an existing destination on Windows;
+# `TempPath::persist` supplies that cross-platform atomic replace and removes
+# an incomplete sibling automatically on every error path.
+tempfile = "3.20"
+
+[target.'cfg(any(target_os = "macos", windows, target_os = "linux"))'.dependencies]
+tauri-plugin-single-instance = "2"
+
+[target.'cfg(windows)'.dependencies]
+# `cap_std::fs::Metadata` computes Windows' stable file identity (volume
+# serial number + file index) internally on stable Rust (via its own
+# `winapi-util` fallback) but only exposes it through a trait gated on the
+# nightly-only `windows_by_handle` feature (rust-lang/rust#63010, still
+# unstable) -- see the decision record. `windows-sys` is Microsoft's
+# actively maintained, officially generated binding (already present
+# transitively in this workspace's own `Cargo.lock` at several versions) used
+# to call `GetFileInformationByHandle` directly on stable Rust, in place of
+# hand-typing the `BY_HANDLE_FILE_INFORMATION` struct layout ourselves.
+windows-sys = { version = "0.61", features = [
+    "Win32_Foundation",
+    "Win32_Storage_FileSystem",
+] }
+# Same WebView2 bindings Tauri/wry already compile against. Named directly so
+# `export/pdf.rs` can call `PrintToPdf` without going through `window.print()`,
+# which blocks the renderer on a preview UI that can fail to appear.
+webview2-com = "0.38"
+windows = { version = "0.61", features = [
+    "Win32_Foundation",
+    "Win32_System_DataExchange",
+    "Win32_System_Ole",
+    "Win32_UI_Shell",
+] }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+# Reuse rustix's typed kqueue bindings for APFS directory unlink evidence.
+rustix = { version = "1.1.4", default-features = false, features = ["event", "fs"] }
+objc2 = "0.6.4"
+# NSWindow and its buttons place the overlay title bar's window buttons
+# (src/window_chrome.rs).
+objc2-app-kit = { version = "0.3.2", default-features = false, features = ["NSPasteboard", "NSWindow", "NSView", "NSResponder", "NSControl", "NSButton", "objc2-core-foundation"] }
+objc2-foundation = { version = "0.3.2", default-features = false, features = ["std", "NSArray", "NSURL"] }
+
+[target."cfg(unix)".dependencies]
+# `rustix::fs::openat` plus `rustix::fs::fsync` give the atomic writer
+# (`src-tauri/src/projects/platform.rs::fsync_dir`) a safe, no-`unsafe`,
+# `std::io`-compatible wrapper around `fsync(2)` for the parent-directory
+# flush the plan requires after a same-directory atomic rename ("fsync the
+# parent directory fd on Unix -- this is the only way to make the rename
+# itself durable, not just the file content"). `rustix` is not a new
+# transitive surface: `cap-primitives` (already a dependency of `cap-std`,
+# itself already relied on for this same module's containment) already pulls
+# in `rustix` on Unix for its own `renameat`/`openat`-family syscalls (see
+# `~/.cargo/registry/src/*/cap-primitives-4.0.2/src/rustix/fs/*.rs`), so this
+# only promotes an already-required-to-be-vetted crate to direct use, the
+# same rationale already recorded for `globset` above. Bytecode Alliance,
+# Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT, latest release 1.1.4
+# confirmed current via `cargo add rustix --dry-run` and
+# `https://crates.io/api/v1/crates/rustix`. `std` (rustix's own default,
+# re-enabled explicitly here since `fs`-only would otherwise pull in rustix's
+# `no_std`-compatible `io::Result`/`Errno` types instead of interoperating
+# directly with `std::io::Error` the way the rest of this module already
+# does) plus `fs` are the base Unix features. macOS adds `event` above for
+# unlink evidence; no process/net/thread/io_uring surface is enabled.
+rustix = { version = "1.1.4", default-features = false, features = [
+    "std",
+    "fs",
+] }
+
+[dev-dependencies]
+tauri = { version = "2", features = ["test"] }
+jsonwebtoken = { version = "10.4", default-features = false, features = ["aws_lc_rs", "use_pem"] }
+wiremock = "0.6"
+# Test-only: a real spec-compatible MCP server fixture. Feature-unified only
+# into test builds (mirrors the existing `jsonwebtoken` dev/prod feature
+# split above) — production code never depends on rmcp's server machinery.
+rmcp = { version = "=2.2.0", default-features = false, features = [
+    "client",
+    "server",
+    "transport-streamable-http-client-reqwest",
+    "transport-streamable-http-server",
+    "reqwest",
+] }
+axum = { version = "0.8", default-features = false, features = ["http1", "tokio", "json"] }
+# `#[tokio::test(start_paused = true)]` (used for reconnect-backoff timing
+# tests) requires tokio's `test-util` feature, which is deliberately not
+# part of the production `full` feature set above.
+tokio = { version = "1", features = ["test-util"] }

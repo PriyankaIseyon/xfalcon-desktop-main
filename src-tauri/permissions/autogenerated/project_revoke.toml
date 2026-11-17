@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-project-revoke"
+description = "Enables the project_revoke command without any pre-configured scope."
+commands.allow = ["project_revoke"]
+
+[[permission]]
+identifier = "deny-project-revoke"
+description = "Denies the project_revoke command without any pre-configured scope."
+commands.deny = ["project_revoke"]

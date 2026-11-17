@@ -1,0 +1,4013 @@
+@import "tailwindcss" source("./");
+@import "./styles/tokens.css";
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0; background: var(--xf-canvas); color: var(--xf-ink);
+  font-family: var(--xf-font-sans); overflow: hidden;
+  font-optical-sizing: auto; /* Google Sans ships an opsz axis — use it */
+  -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility; -webkit-tap-highlight-color: transparent;
+}
+html, body, #root { width: 100%; height: 100%; }
+/* Inheritance is a base default; control type utilities must be able to override it. */
+@layer base {
+  button, input, textarea, select { font: inherit; }
+}
+pre, code, kbd, .font-mono { font-family: var(--xf-font-mono); }
+time, .tabular-nums { font-variant-numeric: tabular-nums; }
+
+/* Control glyph roles. Presentation attributes on Lucide icons remain useful
+   fallbacks, while these classes make the rendered size and stroke uniform. */
+.control-glyph-compact > svg,
+.icon-glyph-compact {
+  width: var(--xf-icon-compact);
+  height: var(--xf-icon-compact);
+  stroke-width: var(--xf-icon-stroke-regular);
+}
+.control-glyph-default > svg,
+.icon-glyph-default {
+  width: var(--xf-icon-default);
+  height: var(--xf-icon-default);
+  stroke-width: var(--xf-icon-stroke-regular);
+}
+.control-glyph-prominent > svg,
+.icon-glyph-prominent {
+  width: var(--xf-icon-prominent);
+  height: var(--xf-icon-prominent);
+  stroke-width: var(--xf-icon-stroke-regular);
+}
+
+.icon-stroke-regular {
+  stroke-width: var(--xf-icon-stroke-regular);
+}
+.icon-stroke-emphasis {
+  stroke-width: var(--xf-icon-stroke-emphasis);
+}
+
+/* Semantic type roles — surfaces compose these instead of ad-hoc sizes. */
+.type-display {
+  font-size: var(--xf-type-display);
+  line-height: 1.2;
+  letter-spacing: -.02em;
+}
+.type-title { font-size: var(--xf-type-title); line-height: 1.25; letter-spacing: -.02em; }
+.type-heading { font-size: var(--xf-type-heading); line-height: 1.35; letter-spacing: -.01em; }
+.type-body { font-size: var(--xf-type-body); line-height: 1.55; }
+.type-label { font-size: var(--xf-type-label); line-height: 1.4; letter-spacing: -.01em; }
+.type-caption { font-size: var(--xf-type-caption); line-height: 1.45; }
+.type-micro { font-size: var(--xf-type-micro); line-height: 1.35; letter-spacing: .01em; }
+/* The one chrome size (xfalcon-design DESIGN.md 2.3): sidebar, title bar,
+   composer meta and suggestion cards. Fixed per reading size, not scaled. */
+.type-chrome { font-size: var(--xf-type-chrome); line-height: 1.4; }
+.type-eyebrow {
+  font-size: var(--xf-type-micro);
+  font-weight: 650;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+/* Stop stays distinct from Send throughout an active response. */
+.follow-up-loading { color: var(--xf-suggestion-blue); }
+.follow-up-chip {
+  /* Same 1px weight as every other bordered chip in the app (`Chip.tsx`'s
+   * `border border-default`) -- so no padding compensation is needed either;
+   * the `px-3 py-1.5` already on the element in `FollowUpChips.tsx` applies
+   * as-is. */
+  border: 1px solid var(--xf-accent);
+}
+.feedback-upvote, .feedback-upvote:hover { color: var(--xf-success); background: var(--xf-success-bg); }
+.feedback-downvote, .feedback-downvote:hover { color: var(--xf-feedback-orange); background: color-mix(in srgb, var(--xf-feedback-orange) 12%, var(--xf-card)); }
+
+/* A fixed, non-theme-swapped red (not `--xf-danger`, which this button
+ * deliberately does not track) -- an unmistakable stop signal in both
+ * themes, same as the glyph stays fixed dark grey rather than the theme's
+ * own ink. */
+.composer-stop { background: #f57c76; color: #333333; }
+.composer-stop:hover { background: #f57c76; color: #333333; }
+.composer-stop__glyph { width: 10px; height: 10px; border-radius: 3px; background: currentColor; }
+@media (forced-colors: active) {
+  .composer-stop { border: 1px solid ButtonText; background: ButtonFace; color: ButtonText; }
+  .composer-stop:hover { background: ButtonFace; color: ButtonText; }
+}
+
+/* Scrollbars — subtle neutral */
+/* The engine's own clear control inside `input[type=search]`. WebView2 is
+   Chromium and draws one; `SearchField` supplies its own, named and sized on
+   the icon scale, so the native one is a second X that answers to nothing. */
+.search-cancel::-webkit-search-cancel-button,
+.search-cancel::-webkit-search-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+:where(*) { scrollbar-width: thin; scrollbar-color: var(--xf-scrollbar) transparent; }
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-thumb {
+  background: var(--xf-scrollbar); border-radius: var(--xf-r-pill);
+  border: 2px solid transparent; background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover { background: var(--xf-scrollbar-hover); background-clip: padding-box; }
+::selection { background: var(--xf-selection); color: inherit; }
+
+/* Keyboard focus ring — every interactive element traceable by Tab
+   (spec: app-shell-material). This is the app's ONE focus treatment: 2 px of
+   `--xf-focus` at 2 px offset. A primitive that re-declares focus in Tailwind
+   is a second answer to the same question, and the ones that did had drifted
+   onto three different colours.
+
+   No `border-radius` here. An outline already follows the element's own
+   corners, and setting a radius on `:focus-visible` set it on the ELEMENT:
+   focusing the circular send button squared it off to 6 px. */
+/* Tailwind v4's preflight matches the browser and leaves a `<button>` on the
+   default arrow, so a control only offered the pointer where some caller
+   happened to add `cursor-pointer` -- 38 of the 71 live controls in the shell
+   did not, including every hover action on every chat row. The pointer is a
+   product-wide answer to a product-wide question, so it is stated once here
+   rather than repeated on each primitive and forgotten on half of them.
+
+   `:not(:disabled)` leaves the disabled treatment to the primitive that owns
+   it: a field says `not-allowed`, and an action stops taking pointer events at
+   all. */
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]),
+summary,
+label[for],
+a[href] {
+  cursor: pointer;
+}
+
+/* The ring colour is declared at REST, where it is invisible because the style
+   is still `none`. Tailwind's `transition-colors` includes `outline-color`, so
+   a primitive that used it animated its own focus indicator up from
+   `currentColor` -- the ring spent its first frames as the element's text
+   colour, and only the primitives WITHOUT a colour transition showed the focus
+   colour immediately. Naming it here leaves the transition nothing to move. */
+button, [role="button"], a, summary,
+[tabindex], input[type="checkbox"], input[type="radio"], input[type="range"] {
+  outline-color: var(--xf-focus);
+}
+button:focus-visible, [role="button"]:focus-visible, a:focus-visible, summary:focus-visible,
+[tabindex]:focus-visible, input[type="checkbox"]:focus-visible,
+input[type="radio"]:focus-visible, input[type="range"]:focus-visible {
+  outline: 2px solid var(--xf-focus); outline-offset: 2px;
+}
+
+/* A field is the other focus role, and it is deliberately different: the ring
+   appears on ANY focus, not only a keyboard one, because a person typing needs
+   to see which box the characters are going into. `ui/controlStyles.ts` owns
+   it -- accent border plus an `--xf-accent-muted` halo. Everything that is not
+   a text field uses the control ring above. */
+
+/* Vibrancy material for menus/header/overlays */
+.xf-material {
+  background: var(--xf-elevated);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  backdrop-filter: blur(28px) saturate(180%);
+  border: 1px solid var(--xf-material-border);
+}
+
+/* Sidebar nav item — macOS source-list. */
+.nav-item {
+  display:flex; align-items:center; gap:10px; padding:7px 10px;
+  border-radius: var(--xf-r-md); font-size: var(--xf-type-chrome); font-weight:500;
+  color: var(--xf-ink-2); cursor:pointer; -webkit-user-select:none; user-select:none; position:relative;
+  transition: background-color var(--xf-dur-fast) var(--xf-ease-soft),
+              color var(--xf-dur-fast) var(--xf-ease-soft),
+              transform var(--xf-dur-base) var(--xf-ease-spring);
+}
+.nav-item:hover { background: var(--xf-hover); color: var(--xf-ink); }
+.nav-item:active { transform: scale(.98); }
+/* Selected row = accent-tinted rounded rect with accent-led icon
+   (spec: app-shell-material; HIG sidebar selection). One appearance, shared
+   with `.sidebar-row.active` through `--xf-nav-selected`, because a sidebar
+   that tints a destination one way and a list row another reads as two
+   different kinds of "here". */
+.nav-item.active { background: var(--xf-nav-selected); color: var(--xf-ink); font-weight: 600; }
+.nav-item.active > svg { color: var(--xf-accent); }
+/* A selected row still has to answer the pointer. Without this, hovering the
+   row you are already on does nothing at all, which reads as a dead control. */
+.nav-item.active:hover { background: var(--xf-nav-selected-hover); }
+
+/* Card surface */
+.surface-card {
+  background: var(--xf-card); border:1px solid var(--xf-border);
+  border-radius: var(--xf-r-lg); box-shadow: var(--xf-elev-1);
+  transition: background-color var(--xf-dur-fast) var(--xf-ease-soft),
+              border-color var(--xf-dur-fast) var(--xf-ease-soft),
+              box-shadow var(--xf-dur-base) var(--xf-ease-soft),
+              transform var(--xf-dur-base) var(--xf-ease-spring);
+}
+
+/* Section container — the canonical large grouping shell (settings sections,
+   grouped panels). White card on the page, soft outline + resting elevation;
+   insets (.code-surface) gain contrast against the white. One container
+   radius (lg) shared with .surface-card. */
+.surface-section {
+  background: var(--xf-card); border:1px solid var(--xf-border);
+  border-radius: var(--xf-r-lg); box-shadow: var(--xf-elev-1);
+  padding: 1.25rem;
+}
+
+/* Monospace inset surfaces — block (code/JSON/result/preview) and inline chip.
+   One surface + radius for all "machine text on an inset" needs. */
+.code-surface {
+  background: var(--xf-surface-alt); border:1px solid var(--xf-hairline);
+  border-radius: var(--xf-r-lg); font-family: var(--xf-font-mono);
+}
+/* Composer — one rounded card with a single edge in both focus states. */
+.composer {
+  position: relative;
+  display:flex; flex-direction:column; gap:4px; background: var(--xf-card);
+  border:2px solid var(--xf-material-border); border-radius: 1.4rem;
+  /* Offset the thicker border to preserve the input's position and card size. */
+  padding:11px 9px 9px;
+  box-shadow: none;
+  transition: border-color var(--xf-dur-fast) var(--xf-ease-soft);
+}
+.composer:focus-within {
+  border-color: var(--xf-accent);
+}
+/* The prompt is an invitation, not content: one step down from the reading
+   size and on the faintest ink, so it recedes against a draft typed over it
+   rather than competing with it. */
+.composer textarea::placeholder {
+  font-size: inherit;
+  color: var(--xf-ink-faint);
+  opacity: 1; /* Firefox dims placeholders by default; the token IS the value */
+}
+/* The caret carries the brand accent — it is the one mark that says the
+   surface is live and waiting. CSS has no caret WIDTH: `caret-color` is the
+   only lever, and a thicker bar would mean drawing a fake caret and tracking
+   the selection ourselves. */
+.composer textarea { caret-color: var(--xf-accent); }
+.composer-palette__header { min-width: 0; }
+.composer-palette__shortcuts { min-width: 0; }
+.composer-project-context {
+  display: flex;
+  width: fit-content;
+  max-width: 100%;
+  align-items: center;
+  gap: .25rem;
+  min-height: 1.5rem;
+  padding: 0 .125rem 0 .25rem;
+  border-radius: var(--xf-r-md);
+  background: var(--xf-surface-alt);
+  color: var(--xf-ink-3);
+  font-size: var(--xf-type-chrome);
+}
+.composer-project-context > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.composer-model-name {
+  max-width: 12rem;
+  overflow: hidden;
+  color: var(--xf-ink-faint);
+  font-size: var(--xf-type-chrome);
+  line-height: 1rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* The one in-chip control. `IconButton` starts at the 32 px compact size, which
+   is the right floor for a control sitting on a surface -- but a control sitting
+   INSIDE a 24 px chip cannot be 32 px, and inventing a fourth control size to
+   make it fit would reopen the named geometry. So chip-scale gets its own
+   named recipe instead of three hand-rolled spellings of it. */
+.chip-action {
+  display: grid;
+  flex: none;
+  width: 1.25rem;
+  height: 1.25rem;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--xf-ink-faint);
+  cursor: pointer;
+  transition: background-color var(--xf-dur-fast) var(--xf-ease-soft), color var(--xf-dur-fast) var(--xf-ease-soft);
+}
+.chip-action:hover {
+  background: var(--xf-hover);
+  color: var(--xf-ink);
+}
+
+/* Dock fade — scrolled transcript dissolves above the docked composer
+   instead of hard-clipping against it (spec: chat-composer). */
+.composer-dock { position: relative; z-index: 1; }
+.composer-dock::before {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; bottom: 100%;
+  height: 1.75rem;
+  background: linear-gradient(to bottom, transparent, var(--xf-canvas));
+  pointer-events: none;
+}
+
+/* Premium chat-first application shell. The third track is exactly zero until
+   a real artifact exists, so an empty canvas never steals workspace width. */
+.app-shell {
+  --xf-sidebar-track: var(--xf-sidebar-width);
+  --xf-canvas-track: clamp(20%, var(--xf-canvas-user-width, 42%), 70%);
+  display: grid;
+  column-gap: var(--xf-layout-gap);
+  grid-template-columns: var(--xf-sidebar-track) minmax(0, 1fr) var(--xf-canvas-track);
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--xf-canvas);
+  transition: grid-template-columns var(--xf-dur-slow) var(--xf-ease-panel);
+}
+.app-shell[data-sidebar-open="false"] { --xf-sidebar-track: var(--xf-sidebar-collapsed); }
+.app-shell[data-canvas-open="false"] {
+  --xf-canvas-track: 0rem;
+  grid-template-columns: var(--xf-sidebar-track) minmax(0, 1fr);
+}
+/* Give the panel room without removing chat. At maximum width the expanded
+   navigation and chat share the remaining width after the two layout gutters. */
+.app-shell[data-canvas-open="true"][data-sidebar-open="true"] {
+  --xf-sidebar-track: min(var(--xf-sidebar-width), calc(85% - var(--xf-canvas-track)));
+}
+.app-shell[data-canvas-expanded="true"] { --xf-canvas-track: 70%; }
+.app-shell:has(.canvas-divider:focus) { transition: none; }
+.app-shell[data-canvas-resizing="true"] { transition: none; -webkit-user-select: none; user-select: none; cursor: col-resize; }
+.app-shell[data-canvas-resizing="true"] iframe { pointer-events: none; }
+.canvas-slot { position: relative; border: 1px solid var(--xf-border); border-radius: var(--xf-panel-radius); }
+.canvas-slot > :last-child { border-radius: inherit; }
+.canvas-divider { position: absolute; z-index: var(--xf-z-sticky); inset: 0 auto 0 -7px; width: 11px; cursor: col-resize; touch-action: none; }
+.canvas-divider::after { content: ""; position: absolute; inset: 0 auto 0 4px; width: 2px; background: transparent; transition: background var(--xf-dur-fast); }
+.canvas-divider:hover::after, .canvas-divider:focus-visible::after,
+.app-shell[data-canvas-resizing="true"] .canvas-divider::after { background: var(--xf-accent); }
+.canvas-divider:focus-visible { outline: none; }
+.canvas-divider:focus-visible .canvas-divider__grip { outline: 2px solid var(--xf-focus); outline-offset: 2px; }
+
+/* The sidebar's resize handle (SidebarResizer): an 8px target inside the
+   sidebar's right edge, drawing the same 2px accent line as the canvas divider
+   on hover, focus and drag. */
+.app-sidebar { position: relative; }
+.sidebar-resizer {
+  position: absolute;
+  z-index: var(--xf-z-sticky);
+  inset: 0 0 0 auto;
+  width: 8px;
+  cursor: col-resize;
+  touch-action: none;
+}
+.sidebar-resizer::after {
+  position: absolute;
+  inset: 0 0 0 auto;
+  width: 2px;
+  background: transparent;
+  content: "";
+  transition: background-color var(--xf-dur-fast) var(--xf-ease-soft);
+}
+.sidebar-resizer:hover::after,
+.sidebar-resizer:focus-visible::after,
+.app-shell[data-sidebar-resizing="true"] .sidebar-resizer::after { background: var(--xf-accent); }
+.sidebar-resizer:focus-visible { outline: none; }
+.app-shell:has(.sidebar-resizer:focus),
+.app-shell[data-sidebar-resizing="true"] { transition: none; }
+.app-shell[data-sidebar-resizing="true"] { -webkit-user-select: none; user-select: none; cursor: col-resize; }
+.app-shell[data-sidebar-resizing="true"] iframe { pointer-events: none; }
+@media (forced-colors: active) {
+  .sidebar-resizer:hover::after,
+  .sidebar-resizer:focus-visible::after { background: Highlight; }
+}
+
+/* Settings owns one centered grid and one control language. These selectors
+   are intentionally Settings-specific so global primitives keep their current
+   dimensions and variants. */
+.settings-page {
+  --settings-button-width: 9.5rem;
+  --settings-button-width-wide: 11.5rem;
+  container: settings-page / inline-size;
+  min-block-size: 0;
+  flex: 1 1 auto;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.settings-page__content {
+  display: flex;
+  inline-size: min(calc(100% - 3rem), 65rem);
+  min-inline-size: 0;
+  margin-inline: auto;
+  padding-block: 1.5rem 2rem;
+  flex-direction: column;
+  gap: 1.75rem;
+}
+.settings-page__intro {
+  display: flex;
+  flex-direction: column;
+  gap: .375rem;
+}
+.settings-page__lede {
+  max-inline-size: 65ch;
+  margin: 0;
+  color: var(--xf-ink-2);
+  font-size: var(--xf-type-caption);
+  line-height: 1.5;
+}
+.settings-section {
+  display: flex;
+  min-inline-size: 0;
+  flex-direction: column;
+  gap: .75rem;
+}
+.settings-section__header,
+.settings-group-header,
+.settings-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(14rem, max-content);
+  column-gap: 1.5rem;
+}
+.settings-section__header {
+  align-items: end;
+}
+.settings-section__copy,
+.settings-group-header__copy,
+.settings-row__copy {
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+}
+.settings-section__title,
+.settings-group-header__title {
+  margin: 0;
+  color: var(--xf-ink);
+  letter-spacing: -.01em;
+}
+.settings-section__title {
+  font-size: var(--xf-type-heading);
+  font-weight: 650;
+}
+.settings-section__description,
+.settings-group-header__description {
+  max-inline-size: 65ch;
+  margin: .25rem 0 0;
+  color: var(--xf-ink-2);
+  font-size: var(--xf-type-caption);
+  line-height: 1.45;
+}
+[data-search-reveal] {
+  outline: 3px solid var(--xf-accent);
+  outline-offset: 4px;
+  animation: xf-search-reveal 5s ease-in-out forwards;
+}
+mark.search-reveal-mark {
+  background: color-mix(in srgb, var(--xf-accent) 28%, transparent);
+  color: inherit;
+  border-radius: 3px;
+  padding: 0 .12em;
+  box-decoration-break: clone;
+}
+@keyframes xf-search-reveal {
+  0%, 20%, 40%, 60%, 80% {
+    outline-color: var(--xf-accent);
+    outline-width: 3px;
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--xf-accent) 70%, white);
+    background-color: color-mix(in srgb, var(--xf-accent) 12%, transparent);
+  }
+  10%, 30%, 50%, 70%, 90% {
+    outline-color: color-mix(in srgb, var(--xf-accent) 45%, white);
+    outline-width: 3px;
+    box-shadow: 0 0 14px color-mix(in srgb, var(--xf-accent) 55%, transparent);
+    background-color: color-mix(in srgb, var(--xf-accent) 22%, transparent);
+  }
+  100% {
+    outline-color: transparent;
+    outline-width: 0;
+    box-shadow: none;
+    background-color: transparent;
+  }
+}
+@keyframes xf-search-reveal-hold {
+  0%, 85% {
+    outline-color: var(--xf-accent);
+    outline-width: 3px;
+  }
+  100% {
+    outline-color: transparent;
+    outline-width: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-search-reveal] { animation: xf-search-reveal-hold 5s linear forwards; }
+}
+.settings-group {
+  min-inline-size: 0;
+  overflow: hidden;
+  border: 1px solid var(--xf-border);
+  border-radius: var(--xf-r-lg);
+  background: var(--xf-card);
+  box-shadow: var(--xf-elev-1);
+}
+/* Hairlines divide the items of one list and the blocks of an outer group. A
+   nested group's header belongs to the block under it, so it is not divided. */
+.settings-group:not(.settings-group--nested) > :is(.settings-group-header, .settings-row) + :is(.settings-group-header, .settings-row),
+.settings-group--nested > .settings-row + .settings-row {
+  border-block-start: 1px solid var(--xf-hairline);
+}
+/* A nested group is a block inside an outer group: the outer box owns the
+   border, radius, shadow and background, and blocks are split by a hairline. */
+.settings-group--nested {
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.settings-group--nested:not(:first-child) {
+  border-block-start: 1px solid var(--xf-hairline);
+}
+.settings-group--nested > .settings-group-header {
+  padding-block: .75rem .5rem;
+}
+.settings-group-header,
+.settings-row {
+  min-inline-size: 0;
+  padding-block: 1rem;
+  padding-inline: 1rem;
+}
+.settings-group-header {
+  align-items: center;
+}
+.settings-group-header__title {
+  font-size: var(--xf-type-label);
+  font-weight: 650;
+}
+.settings-row {
+  align-items: center;
+}
+.settings-row__label {
+  color: var(--xf-ink);
+  font-size: var(--xf-type-label);
+  font-weight: 550;
+  line-height: 1.4;
+}
+.settings-row__hint {
+  max-inline-size: 65ch;
+  margin-block-start: .125rem;
+  color: var(--xf-ink-2);
+  font-size: var(--xf-type-caption);
+  line-height: 1.45;
+}
+.settings-row__control {
+  display: flex;
+  min-inline-size: 0;
+  max-inline-size: 100%;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: .5rem;
+  overflow-wrap: anywhere;
+}
+.settings-group__state {
+  display: flex;
+  min-inline-size: 0;
+  align-items: center;
+  gap: .5rem;
+  margin: 0;
+  padding-block: 1rem;
+  padding-inline: 1rem;
+  font-size: var(--xf-type-caption);
+  line-height: 1.45;
+}
+.settings-group__empty { padding: 1rem; }
+.settings-group:not(.settings-group--nested) > :is(.settings-group__state, ul, .overflow-x-auto) {
+  border-block-start: 1px solid var(--xf-hairline);
+}
+.settings-group > ul {
+  display: flex;
+  flex-direction: column;
+  gap: 0 !important;
+}
+.settings-group > ul > li + li { border-block-start: 1px solid var(--xf-hairline); }
+/* A plan provider block brings its own padding, so its title row takes none of its own. */
+.settings-collection-item > .settings-group-header {
+  padding-block: 0;
+  padding-inline: 0;
+}
+.settings-collection-item {
+  display: flex;
+  min-inline-size: 0;
+  flex-direction: column;
+  gap: .75rem;
+  padding-block: 1rem;
+  padding-inline: 1rem;
+  background: transparent;
+  transition: background-color var(--xf-dur-fast) var(--xf-ease-soft);
+}
+.settings-collection-item--card:hover {
+  background: color-mix(in srgb, var(--xf-accent) 4%, transparent);
+}
+.settings-collection-item__summary {
+  margin: 0;
+  color: var(--xf-ink-3);
+  font-size: var(--xf-type-micro);
+  line-height: 1.4;
+}
+.settings-collection-item__details {
+  display: flex;
+  flex-direction: column;
+  gap: .625rem;
+}
+.settings-disclosure {
+  align-self: flex-start;
+  border: 0;
+  background: transparent;
+  color: var(--xf-ink-3);
+  font-size: var(--xf-type-caption);
+  font-weight: 550;
+  cursor: pointer;
+  padding: 0;
+  transition: color var(--xf-dur-fast) var(--xf-ease-soft);
+}
+.settings-disclosure:hover { color: var(--xf-ink); }
+.settings-collection-item--skill {
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.settings-skill__copy { min-width: 0; }
+.settings-skill__actions { align-items: center; }
+.settings-skill__status {
+  display: inline-flex;
+  align-items: center;
+  border-radius: var(--xf-r-sm);
+  padding: .125rem .4375rem;
+  font-size: var(--xf-type-micro);
+  font-weight: 650;
+  letter-spacing: .02em;
+  line-height: 1.2;
+}
+.settings-skill__status--on {
+  background: color-mix(in srgb, var(--xf-success) 14%, transparent);
+  color: var(--xf-success);
+}
+.settings-skill__status--off {
+  background: var(--xf-surface-alt);
+  color: var(--xf-ink-3);
+}
+.settings-group > .overflow-x-auto {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.settings-actions {
+  display: flex;
+  min-inline-size: 0;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: .5rem;
+}
+
+.settings-control {
+  display: inline-flex;
+  min-block-size: var(--xf-control-compact);
+  block-size: auto;
+  align-items: center;
+  justify-content: center;
+  gap: .375rem;
+  border: 1px solid transparent;
+  color: var(--xf-ink);
+  font-size: var(--xf-type-caption);
+  font-weight: 600;
+  line-height: 1.25;
+  white-space: nowrap;
+  cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+  touch-action: manipulation;
+  padding-block: .4375rem;
+  transition:
+    background-color var(--xf-dur-fast) var(--xf-ease-soft),
+    border-color var(--xf-dur-fast) var(--xf-ease-soft),
+    color var(--xf-dur-fast) var(--xf-ease-soft),
+    box-shadow var(--xf-dur-fast) var(--xf-ease-soft),
+    transform var(--xf-dur-fast) var(--xf-ease-soft);
+}
+.settings-control--radius { border-radius: var(--xf-r-md); }
+.settings-button { padding-inline: .75rem; }
+/* Labelled buttons in a row, a group header or an item's actions come in two
+   widths, so a column of them lines up whatever the label. Both are minimums: a
+   longer label grows its button rather than being cut. Dialog footers are not
+   in these containers and keep fitting their content. */
+.settings-actions .settings-button,
+.settings-row__control .settings-button,
+.settings-group__state .settings-button {
+  min-inline-size: var(--settings-button-width);
+}
+.settings-actions .settings-button--wide,
+.settings-row__control .settings-button--wide,
+.settings-group__state .settings-button--wide {
+  min-inline-size: var(--settings-button-width-wide);
+}
+.settings-icon-button {
+  inline-size: var(--xf-control-compact);
+  min-inline-size: var(--xf-control-compact);
+  block-size: var(--xf-control-compact);
+  min-block-size: var(--xf-control-compact);
+  padding: 0;
+  padding-block: 0;
+}
+.settings-control[data-settings-variant="primary"] {
+  border-color: var(--xf-accent);
+  background: var(--xf-accent);
+  color: var(--xf-accent-ink);
+  box-shadow: var(--xf-elev-1);
+}
+.settings-control[data-settings-variant="secondary"] {
+  border-color: var(--xf-border);
+  background: var(--xf-card);
+  color: var(--xf-ink);
+  box-shadow: var(--xf-elev-1);
+}
+.settings-control[data-settings-variant="ghost"] {
+  background: transparent;
+  color: var(--xf-ink-2);
+}
+.settings-control[data-settings-variant="danger"] {
+  border-color: var(--xf-border);
+  background: var(--xf-card);
+  color: var(--xf-danger);
+}
+.settings-control[data-settings-variant="primary"]:not(:disabled):hover {
+  border-color: var(--xf-accent-fill-hover);
+  background: var(--xf-accent-fill-hover);
+}
+.settings-control[data-settings-variant="secondary"]:not(:disabled):hover {
+  border-color: var(--xf-border-strong);
+  background: var(--xf-hover);
+}
+.settings-control[data-settings-variant="ghost"]:not(:disabled):hover {
+  background: var(--xf-hover);
+  color: var(--xf-ink);
+}
+.settings-control[data-settings-variant="danger"]:not(:disabled):hover {
+  border-color: var(--xf-danger);
+  background: var(--xf-danger-bg);
+}
+.settings-control:not(:disabled):active { transform: scale(.98); }
+.settings-control:focus-visible {
+  outline: 2px solid var(--xf-focus);
+  outline-offset: 2px;
+}
+.settings-control:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+}
+.settings-control__icon,
+.settings-segmented-control__icon {
+  display: inline-grid;
+  inline-size: var(--xf-icon-default);
+  block-size: var(--xf-icon-default);
+  flex: none;
+  place-items: center;
+}
+.settings-control__icon > svg,
+.settings-segmented-control__icon > svg {
+  inline-size: 100%;
+  block-size: 100%;
+  stroke-width: var(--xf-icon-stroke-regular);
+}
+.settings-control__spinner { animation: xf-spin .8s linear infinite; }
+@keyframes xf-spin { to { transform: rotate(360deg); } }
+
+.settings-segmented-control {
+  position: relative;
+  isolation: isolate;
+  touch-action: pan-y;
+  display: inline-flex;
+  min-block-size: var(--xf-control-prominent);
+  block-size: auto;
+  min-inline-size: 0;
+  max-inline-size: 100%;
+  align-items: stretch;
+  gap: 2px;
+  border: 1px solid var(--xf-border);
+  border-radius: var(--xf-r-md);
+  background: var(--xf-surface-alt);
+  padding: 3px;
+}
+.settings-segmented-control__segment {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  min-block-size: var(--xf-control-compact);
+  block-size: auto;
+  min-inline-size: 0;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: var(--xf-r-sm);
+  padding-block: .3125rem;
+  padding-inline: .625rem;
+  color: var(--xf-ink-2);
+  font-size: var(--xf-type-caption);
+  line-height: 1.25;
+  white-space: nowrap;
+  transition: color var(--xf-dur-fast) var(--xf-ease-soft), transform var(--xf-dur-fast) var(--xf-ease-soft);
+}
+.settings-segmented-control__segment[data-state="checked"] {
+  color: var(--xf-ink);
+}
+.settings-segmented-control__segment[data-state="unchecked"]:hover {
+  color: var(--xf-ink);
+}
+.settings-segmented-control__segment:active { transform: scale(.98); }
+@container settings-page (max-width: 45rem) {
+  .settings-page__content { inline-size: calc(100% - 2rem); }
+  .settings-section__header,
+  .settings-group-header,
+  .settings-row {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: .75rem;
+  }
+  .settings-actions,
+  .settings-row__control { justify-content: flex-start; }
+  /* Room is short here, so a long label may wrap instead of overflowing. */
+  .settings-control {
+    max-inline-size: 100%;
+    white-space: normal;
+    text-align: center;
+  }
+}
+
+@media (forced-colors: active) {
+  .settings-group,
+  .settings-control,
+  .settings-segmented-control {
+    border-color: CanvasText;
+  }
+  .settings-group:not(.settings-group--nested) > :is(.settings-group-header, .settings-row) + :is(.settings-group-header, .settings-row),
+  .settings-group--nested > .settings-row + .settings-row,
+  .settings-group--nested:not(:first-child) {
+    border-block-start-color: CanvasText;
+  }
+  .settings-control[data-settings-variant="primary"] {
+    border-color: Highlight;
+    background: Highlight;
+    color: HighlightText;
+  }
+  .settings-control[data-settings-variant="danger"] { border-style: double; }
+  .settings-control:focus-visible {
+    outline-color: Highlight;
+  }
+  .settings-segmented-control__segment[data-state="checked"] {
+    color: Highlight;
+  }
+}
+
+.app-sidebar {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--xf-border);
+  border-radius: var(--xf-panel-radius);
+  background: var(--xf-sidebar);
+  display: flex;
+}
+/* One label column for every ICON row in the sidebar. A top-level row puts a
+   1rem icon in an 8px gutter, so its text starts at 2rem -- destinations, group
+   headings, and the row that adds to a group all land there. The search pill and
+   the account control are not nav rows: each is its own control with its own
+   padding, and each wears the field glyph scale rather than this column.
+   The glyph is not what sets that column: `--xf-nav-icon-col` is, so a 14px or
+   an 18px icon centres in the same gutter instead of dragging the label with
+   it. A 1.125rem Settings glyph used to put that one label 2px off.
+
+   Rows WITHOUT an icon are a separate, deliberate column: a chat title steps in
+   by `--xf-nav-indent` from the row's own inset, the same step a project's
+   files take under the project (see `.app-sidebar__section--chat .sidebar-row`).
+   `the sidebar keeps one label column for its icon rows` in the visual suite is
+   what holds the first rule; the second is stated where it is applied. */
+:root {
+  --xf-nav-label-x: 2rem;
+  /* The icon COLUMN, not the icon. Every nav glyph is centred in this box, so
+     changing a glyph's size moves the glyph and never the label beside it. */
+  --xf-nav-icon-col: 1rem;
+  --xf-nav-step: 1rem;
+  /* Every row in the sidebar is this tall -- destinations, list rows, tree
+     rows. A source list is scannable because of its vertical rhythm, and two
+     row heights in one column is what breaks it.
+     Scaled by the reading-size setting, because HIG puts row height, text and
+     glyph size on one control: "a sidebar's row height, text, and glyph size
+     depend on its overall size". A fixed height with scaling text means the
+     label outgrows its row and clips at the large setting. */
+  --xf-nav-row-h: 2.125rem;
+  /* The destinations are the exception, and the reason is that they are not in
+     the source list: they sit in a container of their own, four of them, and
+     they are the first thing read on the surface. A primary nav packed to the
+     same rhythm as a list of forty chats reads as a list of four chats. Scaled
+     by the reading-size setting for the same reason the row height is. */
+  --xf-nav-destination-h: 2.375rem;
+  /* One step of belonging. A group's label and the rows that stand for a
+     container sit at the base inset; the list under either of them is one step
+     in. Rows carry no item icons, so this inset is the ONLY thing separating a
+     chat from the thing it belongs to -- it is stated once and every list reads
+     from it. */
+  --xf-nav-base-inset: 8px;
+  --xf-nav-indent: 12px;
+  /* THE selection appearance, named once. Anything in the sidebar that means
+     "this is what is open" uses these two and nothing else. */
+  --xf-nav-selected: var(--xf-accent-muted);
+  --xf-nav-selected-hover: color-mix(in srgb, var(--xf-accent) 18%, transparent);
+}
+
+/* CSS calc cannot multiply a length by the scale token. Keep the navigation
+   dimensions explicit so the reading-size control changes the row boxes as
+   well as their text, and the well retains its padding at every size. */
+[data-font-size="small"] {
+  --xf-nav-row-h: 1.955rem;
+  --xf-nav-destination-h: 2.185rem;
+}
+[data-font-size="large"] {
+  --xf-nav-row-h: 2.38rem;
+  --xf-nav-destination-h: 2.66rem;
+}
+.app-sidebar__content {
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+  width: 100%;
+  height: 100%;
+  padding:
+    env(safe-area-inset-top)
+    max(.625rem, env(safe-area-inset-right))
+    max(.625rem, env(safe-area-inset-bottom))
+    max(.625rem, env(safe-area-inset-left));
+  position: relative;
+  overflow: hidden;
+}
+.app-sidebar__brand {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  height: var(--xf-titlebar-height);
+  flex-shrink: 0;
+  margin-bottom: 2px;
+  padding: 0 .375rem;
+}
+.sidebar-chat-children {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+.app-account-trigger-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: var(--xf-nav-row-h);
+  padding: 0.375rem 0.5rem;
+  border-radius: var(--xf-r-lg);
+  border: 0;
+  background: var(--xf-hover);
+  color: var(--xf-ink);
+  cursor: pointer;
+  transition:
+    background-color var(--xf-dur-fast) var(--xf-ease-soft),
+    transform var(--xf-dur-fast) var(--xf-ease-soft);
+}
+.app-account-trigger-card:hover {
+  background: color-mix(in srgb, var(--xf-accent) 10%, var(--xf-hover));
+}
+.app-sidebar__brand > span:last-child,
+.app-account-trigger > span:last-child {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+.app-sidebar__brand strong { font-size: var(--xf-type-chrome); letter-spacing: -.01em; }
+.app-sidebar__brand small,
+.app-account-menu small { color: var(--xf-ink-3); font-size: var(--xf-type-chrome); }
+/* The falcon on its own: no tile, border or shadow (xfalcon-design DESIGN.md
+   5.3, "never box the mark"; Kyle, 2026-10-15). Width sets the size and the
+   height follows the mark's own 1.32:1 shape, so it is never squashed. */
+.app-mark {
+  display: grid;
+  place-items: center;
+  color: var(--xf-mark);
+}
+.app-mark svg { width: 1.75rem; height: auto; }
+/* The wordmark: "xFalcon" with the x in the accent, as on xfalcon.ai. */
+.logo-wordmark__x { color: var(--xf-accent); }
+.empty-conversation__mark { color: var(--xf-mark); }
+.app-sidebar kbd {
+  color: var(--xf-ink-faint);
+  font-size: var(--xf-type-chrome);
+  font-weight: 500;
+}
+/* Top-level destinations share the source list's metrics so the sidebar reads
+   as one list rather than two stacked ones. Scoped to the sidebar: `.nav-item`
+   is used on other surfaces at its own size. */
+.app-sidebar__content .nav-item {
+  min-height: var(--xf-nav-row-h);
+  gap: 8px;
+  padding: 0 8px;
+  line-height: 1.25;
+}
+/* The one action that starts work, so its icon carries the accent even at
+   rest. It stays a row: a boxed button here competed with the source list
+   for the same 17rem and made the sidebar read as a form. */
+.nav-item--create > svg { color: var(--xf-accent); }
+
+/*
+ * Three type levels, and exactly three.
+ *
+ * The sidebar previously set ONE size for every row and let weight alone carry
+ * hierarchy, on the source-list reasoning below. That flattened out as soon as
+ * the column nested a group inside a group: the deepest rows — the chat names
+ * people actually aim at — looked like the least important text on the surface.
+ *
+ *   title    Settings, and the destinations above  `heading`/600, secondary ink
+ *   caption  Pinned, Today, This week, Older       `caption`/600, faint ink
+ *   row      every chat, project, file             `label`/400-590
+ *
+ * Each level names a role on the product ramp. The title level used to be
+ * `body * 1.08` -- a 15px step that existed nowhere else in the product and so
+ * answered neither the reading-size setting nor any other surface's hierarchy.
+ *
+ * Rows stay uniform among THEMSELVES, which is the part of the source-list rule
+ * that matters: a project, a chat and a file are the same kind of thing to the
+ * eye, and only branch line and icon separate them. A row sits between the two label
+ * sizes on purpose — a caption is furniture, a row is content, and content must
+ * not be the smallest thing on the surface.
+ */
+/*
+ * A title is a label for a region. The rows under it are the things you came
+ * to find, so the rows carry full ink and the titles step back to secondary.
+ * Titles never take the accent-tinted selected fill: that fill belongs to the
+ * current conversation or file row. Painting Chat as selected made a section
+ * header look like the thing you had chosen.
+ */
+.app-sidebar__content .nav-item--title {
+  font-size: var(--xf-type-chrome);
+  font-weight: 600;
+  letter-spacing: -.006em;
+  color: var(--xf-ink-2);
+}
+.app-sidebar__content .nav-item--title.active,
+.app-sidebar__content .nav-item--title.active:hover {
+  background: transparent;
+  color: var(--xf-ink-2);
+  font-weight: 600;
+}
+.app-sidebar__content .nav-item--title.active > svg {
+  color: var(--xf-ink-faint);
+}
+
+/*
+ * A destination is not a region label.
+ *
+ * A title labels rows you read past on the way to one of them, and painting it
+ * as chosen makes a header look like the thing you chose — which is what the
+ * rules above are for. Settings has no rows under it. It *is* the thing you
+ * choose, so it takes the accent-tinted selected appearance every other chosen
+ * row in this column takes, and its icon leads with the accent rather than
+ * receding to the faintest ink on the surface. The destinations in the group
+ * above say the same thing a different way (.nav-destination): they sit in a
+ * container of their own, where being raised out of the well says it without
+ * spending the accent tint a second time.
+ */
+.app-sidebar__content .nav-item--destination.active,
+.app-sidebar__content .nav-item--destination.active:hover,
+.nav-item--destination.active,
+.nav-item--destination.active:hover {
+  background: var(--xf-nav-selected);
+  color: var(--xf-ink);
+}
+.app-sidebar__content .nav-item--destination.active:hover,
+.nav-item--destination.active:hover {
+  background: var(--xf-nav-selected-hover);
+}
+.app-sidebar__content .nav-item--destination.active > svg,
+.nav-item--destination.active > svg {
+  color: var(--xf-accent);
+}
+/* Child rows share the title inset. Depth comes from spacing and disclosure,
+   not a decorative rail that competes with the labels. */
+.app-sidebar__content .nav-item--child {
+  padding-inline-start: 8px;
+}
+
+/*
+ * The destinations, as one group.
+ *
+ * Chats, Projects, Datasets and Reports answer one question — which surface the
+ * main region shows — so they are drawn as one well at the top of the column
+ * instead of four rows a reader has to find among the lists. The well is a container,
+ * not a row: its inline padding is zero, so a destination's icon and label land
+ * on exactly the label column every list row below it uses
+ * (--xf-nav-label-x). Its rings are inset shadows for the same reason — a real
+ * border would push every label in the group 1px off that column.
+ */
+.app-sidebar__destinations {
+  --xf-destination-gap: .1875rem;
+  /* The well's own inset. A destination's padding gives it back, so an icon
+     and label still land on the label column every list row below uses
+     (--xf-nav-label-x). */
+  --xf-destination-inset: .25rem;
+  --xf-destination-marker-clearance: 9px;
+  position: relative;
+  display: grid;
+  flex: none;
+  gap: var(--xf-destination-gap);
+  /* The group is a block of its own, so it separates from the search below it
+     by more than the column's own gap -- otherwise the pill reads as a fifth
+     destination that happens to be shaped differently. */
+  margin: 0 .25rem .625rem;
+  padding: var(--xf-destination-inset);
+  /* A sunken track with the current destination raised on it as a card: the
+     same pair the file view's tabs, every segmented control, and the web app's
+     sidebar draw, so "this is the one" looks the same everywhere. The ring is
+     an inset shadow so it takes no layout. */
+  border-radius: var(--xf-r-xl);
+  background: var(--xf-sunken);
+  box-shadow: inset 0 0 0 1px var(--xf-hairline);
+}
+.nav-destination__highlight {
+  position: absolute;
+  z-index: 0;
+  top: var(--xf-destination-inset);
+  right: var(--xf-destination-inset);
+  left: var(--xf-destination-inset);
+  height: var(--xf-nav-destination-h);
+  border-radius: var(--xf-r-lg);
+  background: var(--xf-card);
+  box-shadow: 0 0 0 1px var(--xf-border), var(--xf-elev-1);
+  pointer-events: none;
+  transform: translateY(0);
+  /* Full white in light, the raised card tone in dark: the one bright thing
+     in a sunken track. */
+  transition:
+    opacity var(--xf-dur-fast) var(--xf-ease-soft),
+    transform var(--xf-dur-base) var(--xf-ease-panel);
+}
+/* One step is one row plus one gap. */
+.app-sidebar__destinations[data-active-index="1"] .nav-destination__highlight {
+  transform: translateY(calc(100% + var(--xf-destination-gap)));
+}
+.app-sidebar__destinations[data-active-index="2"] .nav-destination__highlight {
+  transform: translateY(calc(200% + 2 * var(--xf-destination-gap)));
+}
+.app-sidebar__destinations[data-active-index="3"] .nav-destination__highlight {
+  transform: translateY(calc(300% + 3 * var(--xf-destination-gap)));
+}
+.app-sidebar__destinations[data-active-index="-1"] .nav-destination__highlight { opacity: 0; }
+.nav-destination {
+  position: relative;
+  display: flex;
+  min-height: var(--xf-nav-destination-h);
+  align-items: center;
+  gap: 8px;
+  /* The leading inset gives the well's own inset back, then clears the
+     selection bar by a small gap so the bar never touches the icon. That
+     clearance puts the destinations' labels on a column of their own, a fixed
+     step right of the list rows' (tests/visual/shell.spec.ts pins both). */
+  padding: 0 calc(8px - var(--xf-destination-inset)) 0
+    calc(8px - var(--xf-destination-inset) + var(--xf-destination-marker-clearance));
+  border: 0;
+  border-radius: var(--xf-r-lg);
+  background: transparent;
+  color: var(--xf-ink-3);
+  font-size: var(--xf-type-chrome);
+  font-weight: 500;
+  letter-spacing: -.006em;
+  line-height: 1.25;
+  text-align: start;
+  cursor: pointer;
+  transition:
+    background-color var(--xf-dur-fast) var(--xf-ease-soft),
+    color var(--xf-dur-fast) var(--xf-ease-soft),
+    transform var(--xf-dur-fast) var(--xf-ease-soft);
+}
+.nav-destination > * { position: relative; z-index: 1; }
+/* A destination row: the destination itself, and the "+" that starts a new one
+   of its kind from any page (a chat, a project, a dataset upload). The "+" is
+   revealed on hover and on keyboard focus within the row, and is always shown
+   on a touch screen: hover is never the only path. It is hidden with opacity,
+   not visibility, so it stays in the tab order and the accessibility tree. A
+   disabled one has no action to offer, so it stays hidden. */
+.nav-destination-row { position: relative; display: grid; }
+.nav-destination__create {
+  position: absolute;
+  z-index: 2;
+  inset-block: 0;
+  inset-inline-end: .25rem;
+  margin-block: auto;
+  opacity: 0;
+  pointer-events: none;
+}
+.nav-destination-row:hover .nav-destination__create:enabled,
+.nav-destination-row:focus-within .nav-destination__create:enabled { opacity: 1; pointer-events: auto; }
+.nav-destination__create:enabled:focus-visible { opacity: 1; pointer-events: auto; }
+@media (pointer: coarse) {
+  .nav-destination__create:enabled { opacity: 1; pointer-events: auto; }
+}
+.nav-item > svg,
+.nav-destination > svg {
+  flex: none;
+  inline-size: var(--xf-nav-icon-col);
+  block-size: var(--xf-nav-icon-col);
+}
+.nav-destination > svg {
+  color: var(--xf-ink-3);
+  transition: color var(--xf-dur-fast) var(--xf-ease-soft);
+}
+/* A resting destination is muted and brightens on hover, over a faint fill
+   that stays below the raised card's weight. */
+.nav-destination:not([aria-current="page"]):hover {
+  background: color-mix(in oklab, var(--xf-ink) 4%, transparent);
+  color: var(--xf-ink);
+}
+.nav-destination:hover > svg { color: var(--xf-ink-2); }
+.nav-destination[aria-current="page"] {
+  color: var(--xf-ink);
+  font-weight: 600;
+}
+.nav-destination[aria-current="page"] > svg { color: var(--xf-ink); }
+/* The same give every other full-width row in this column has. A row is wide
+   enough that a deeper scale reads as the whole sidebar flinching. */
+.nav-destination:active { transform: scale(.98); }
+/* The accent's one appearance in the group: a short bar inside the raised
+   card's leading edge. */
+.nav-destination__marker {
+  position: absolute;
+  left: 4px;
+  width: 3px;
+  /* Proportional to the row it marks, not a fixed sliver -- at the large
+     reading size a fixed one shrinks against the label beside it. */
+  height: calc(var(--xf-nav-destination-h) * .38);
+  border-radius: var(--xf-r-pill);
+  background: var(--xf-accent);
+}
+
+/*
+ * The sidebar, collapsed to a rail.
+ *
+ * Overflow is visible here and nowhere else: every control in a rail is an icon
+ * whose label lives in a tooltip beside it, and the account menu opens
+ * rightwards out of a 3.5rem column. Clipping either would leave the rail's
+ * controls unnamed.
+ */
+.app-sidebar[data-rail="true"] { overflow: visible; }
+.app-sidebar__rail {
+  animation: xf-fade var(--xf-dur-base) var(--xf-ease-soft) both;
+  display: flex;
+  width: 100%;
+  height: 100%;
+  flex-direction: column;
+  align-items: center;
+  gap: .125rem;
+  padding:
+    env(safe-area-inset-top)
+    .5rem
+    max(.625rem, env(safe-area-inset-bottom));
+}
+/* The mark keeps the vertical slot the brand row holds when the sidebar is
+   open, so collapsing moves nothing that was not asked to move. */
+.app-sidebar__rail-mark {
+  flex: none;
+  height: var(--xf-titlebar-height);
+  margin-bottom: .25rem;
+}
+.app-sidebar__rail-divider {
+  flex: none;
+  width: 1.25rem;
+  height: 1px;
+  margin-bottom: .375rem;
+  background: var(--xf-hairline);
+}
+.app-sidebar__rail-spacer { flex: 1 1 auto; }
+.app-sidebar__rail-item {
+  position: relative;
+  display: inline-flex;
+  width: 2.25rem;
+  height: 2.25rem;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: var(--xf-r-md);
+  background: transparent;
+  color: var(--xf-ink-3);
+  cursor: pointer;
+  transition:
+    background-color var(--xf-dur-fast) var(--xf-ease-soft),
+    color var(--xf-dur-fast) var(--xf-ease-soft),
+    transform var(--xf-dur-fast) var(--xf-ease-soft);
+}
+.app-sidebar__rail-item:hover {
+  background: var(--xf-hover);
+  color: var(--xf-ink);
+}
+.app-sidebar__rail-item:disabled,
+.nav-item--create:disabled {
+  cursor: not-allowed;
+  opacity: .5;
+}
+.app-sidebar__rail-item:disabled:hover {
+  background: transparent;
+  color: var(--xf-ink-3);
+}
+/* A rail item is a square button, not a row, so it takes the button's press
+   scale. Below .95 the give stops reading as a press and starts reading as a
+   glitch. */
+.app-sidebar__rail-item:active { transform: scale(.96); }
+.app-sidebar__rail-item[aria-current="page"] {
+  background: var(--xf-nav-selected);
+  color: var(--xf-ink);
+}
+.app-sidebar__rail-item[aria-current="page"] > svg { color: var(--xf-accent); }
+.app-sidebar__rail .app-account-menu { margin-top: .125rem; }
+/* Forced colours drop box-shadow, and "raised out of the well" IS a shadow —
+   so the current destination states itself with an inset outline instead
+   (spec: app-shell-material, selection visible in every theme). */
+@media (forced-colors: active) {
+  .app-sidebar__destinations {
+    box-shadow: none;
+    outline: 1px solid CanvasText;
+    outline-offset: -1px;
+  }
+  .nav-destination[aria-current="page"],
+  .app-sidebar__rail-item[aria-current="page"] {
+    box-shadow: none;
+    outline: 1px solid Highlight;
+    outline-offset: -1px;
+  }
+  .nav-destination[aria-current="page"] > svg,
+  .app-sidebar__rail-item[aria-current="page"] > svg { color: Highlight; }
+  .nav-destination__marker { background: Highlight; }
+  .tool-activity-shell__leading--bare { border-color: transparent; }
+  .tool-activity-shell__spinner { color: Highlight; }
+  /* Dots are drawn with a background, which forced colours would repaint as
+     the page colour and hide. */
+  .lattice-loader__cell { forced-color-adjust: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nav-destination__highlight { transition: none; }
+  .nav-destination:active,
+  .app-sidebar__rail-item:active { transform: none; }
+}
+
+.app-sidebar__section { position: relative; padding: 0 .25rem; }
+
+
+.app-sidebar__body {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: .75rem;
+}
+.app-sidebar__explore {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 1rem;
+  overflow: hidden;
+}
+.app-sidebar__utilities {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: .125rem;
+}
+/* Whichever destination is current owns the whole explore column: one list,
+   filling it, scrolling on its own. Two sections used to split it 64/36 whether
+   or not both had anything in them, which is how a short recents list ended up
+   with a third of the column reserved for a tree below it. */
+.app-sidebar__section--fill {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+}
+/* New chat and the recency captions are the labels; the chats are the list
+   under them, so they sit one step in -- the same step a project's files take
+   under the project. This used to carry an extra 1rem to line up with the
+   projects tree that shared the column; the tree has its own destination now,
+   and the extra step only pushed every chat title off the lattice. */
+.app-sidebar__section--chat .sidebar-row {
+  padding-inline-start: calc(var(--xf-nav-base-inset) + var(--xf-nav-indent));
+}
+
+/* A title and the action that adds to its group, on one line -- the macOS
+   pattern for "+" in a source list, and a whole row of vertical space back
+   from the full-width button it replaces. */
+.app-sidebar__heading {
+  display: flex;
+  min-height: var(--xf-nav-row-h);
+  align-items: center;
+  gap: .125rem;
+}
+.app-sidebar__heading > .nav-item {
+  flex: 1;
+  min-width: 0;
+}
+.nav-item--title > svg {
+  color: var(--xf-ink-faint);
+}
+/* The Chat group sits directly under the brand mark, not under another
+   section -- it keeps the flex gap alone instead of doubling it with the
+   inter-section margin every other section needs to separate from the one
+   above it. */
+.app-sidebar__section--flush { margin-top: 0; }
+/* The caption level: "Pinned", "Today", "Yesterday", "This week", "Older".
+   It labels a run of rows, so it sits at the base inset and the rows it labels
+   sit one step in -- the same relationship a project has with its files.
+   Uppercase micro type separates these labels from chat titles. */
+.sidebar-heading {
+  display: flex;
+  min-height: calc(var(--xf-nav-row-h) - .25rem);
+  align-items: center;
+  gap: .375rem;
+  margin: 0;
+  padding-block: 0;
+  padding-inline: 8px .5rem;
+  color: var(--xf-ink-3);
+  font-size: var(--xf-type-chrome);
+  font-weight: 500;
+  letter-spacing: 0;
+  line-height: 1.35;
+}
+.sidebar-heading__count {
+  margin-inline-start: auto;
+  color: var(--xf-ink-faint);
+  font-size: var(--xf-type-chrome);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.sidebar-group--pinned {
+  margin: 0;
+  padding: 0;
+}
+.sidebar-group--pinned .sidebar-row--pinned {
+  font-weight: 500;
+}
+/* A caption that follows a row needs to belong to what comes AFTER it, not
+   read as a second line of the row above. */
+.nav-item + .sidebar-heading { margin-top: .625rem; }
+/* Two groups share one scroller -- "Pinned", then "Recents". The second label
+   needs air above it, or it sits tight against the last row of the first group
+   and the boundary between the two is invisible. */
+.app-sidebar__scroll ul + .sidebar-heading { margin-top: .75rem; }
+/* Recents and Projects each scroll on their own, so the top of both lists stays
+   reachable even when one list is long. */
+.app-sidebar__scroll {
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow-y: auto;
+  /* A nested list must not scroll its parent once it bottoms out. */
+  overscroll-behavior: contain;
+  /*
+   * Scroll edge shadows (HIG: scroll edge effects, not a hard divider).
+   *
+   * A list that reaches its height cap needs to show that more exists, and the
+   * scrollbar only appears on hover in this shell. The two `local` gradients ride with the
+   * content and cover the shadows when the list is at an end, so a shadow is
+   * visible exactly when there IS more in that direction, and a list that
+   * fits shows none at all.
+   */
+  background:
+    linear-gradient(var(--xf-sidebar) 30%, rgba(0, 0, 0, 0)) top / 100% 14px no-repeat local,
+    linear-gradient(rgba(0, 0, 0, 0), var(--xf-sidebar) 70%) bottom / 100% 14px no-repeat local,
+    radial-gradient(farthest-side at 50% 0, var(--xf-scroll-edge), rgba(0, 0, 0, 0)) top / 100% 6px no-repeat scroll,
+    radial-gradient(farthest-side at 50% 100%, var(--xf-scroll-edge), rgba(0, 0, 0, 0)) bottom / 100% 6px no-repeat
+      scroll;
+}
+
+/* Source-list rows (spec: Apple HIG, Sidebars > source lists).
+ *
+ * Type is UNIFORM across every row. An earlier pass tried to separate a
+ * project from a chat by shrinking the chat's font, which is not how a source
+ * list works and read as mush: a dozen rows at four near-identical sizes gives
+ * the eye nothing to lock onto. Finder, Mail and Xcode all set one size for
+ * every row and let three other things carry meaning:
+ *
+ *   icon       what kind of thing this is -- folder, chat, artifacts
+ *   indent     what it belongs to
+ *   header     where one group ends and the next begins
+ *
+ * Row height is fixed and titles are single-line with an ellipsis. A wrapping
+ * title breaks the vertical rhythm, and that rhythm is most of what makes a
+ * source list scannable. */
+/* "Browse files": an entry into the project's folder, not an item in it, so
+   it speaks in the caption voice with a leading folder mark. */
+.sidebar-row.sidebar-row--browse {
+  gap: 6px;
+  color: var(--xf-ink-3);
+  font-size: var(--xf-type-chrome);
+  font-weight: 500;
+}
+.sidebar-row--browse .sidebar-row__browse-icon { flex: none; color: var(--xf-accent); }
+.sidebar-row.sidebar-row--browse:hover,
+.sidebar-row.sidebar-row--browse.active { color: var(--xf-ink); }
+.sidebar-row {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  height: var(--xf-nav-row-h);
+  align-items: center;
+  gap: 8px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: var(--xf-r-md);
+  background: transparent;
+  /* Full ink: a chat name, a project, a file IS the content of this sidebar,
+     and it outranks the title labelling the group it sits in. */
+  color: var(--xf-ink);
+  font-size: var(--xf-type-chrome);
+  font-weight: 400;
+  cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+  position: relative;
+  transition: background-color var(--xf-dur-fast) var(--xf-ease-soft),
+              color var(--xf-dur-fast) var(--xf-ease-soft),
+              transform var(--xf-dur-base) var(--xf-ease-spring);
+}
+.sidebar-row > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sidebar-row__body {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: .375rem;
+}
+/* A pin marks the row; it is not a word in front of the chat's name. Hung in
+   the gutter the row's own inset already leaves, so a pinned chat's title
+   starts on the same column as every other chat's -- inline, it pushed the
+   pinned rows a glyph and a gap to the right of the rest of the list, which is
+   the one thing a scannable column cannot afford. */
+.sidebar-row__pin {
+  position: absolute;
+  top: 50%;
+  /* Centred in the gutter the row's own inset leaves. The glyph's box is set
+     here rather than left to the icon's size prop, so the offset and the width
+     it is derived from stay in one place. */
+  left: calc((var(--xf-nav-base-inset) + var(--xf-nav-indent) - 11px) / 2);
+  width: 11px;
+  height: 11px;
+  flex: none;
+  color: var(--xf-accent);
+  opacity: .85;
+  transform: translateY(-50%);
+}
+.sidebar-row__title {
+  min-width: 0;
+  overflow: hidden;
+  flex: 1 1 auto;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sidebar-row--pinned .sidebar-row__title {
+  font-weight: 500;
+}
+.sidebar-show-more {
+  display: block;
+  width: calc(100% - 1rem);
+  margin: .125rem .5rem .375rem;
+  padding: .3125rem .5rem;
+  border: 0;
+  border-radius: var(--xf-r-md);
+  background: transparent;
+  color: var(--xf-ink-3);
+  font-size: var(--xf-type-chrome);
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background-color var(--xf-dur-fast) var(--xf-ease-soft),
+    color var(--xf-dur-fast) var(--xf-ease-soft);
+}
+.sidebar-show-more:hover {
+  background: var(--xf-hover);
+  color: var(--xf-ink-2);
+}
+/* Names use the whole row until its controls are revealed. Reserve their
+   actual target sizes, without animating layout or narrowing indent spacers. */
+.conversation-row-host {
+  --sidebar-row-action-size: var(--xf-control-compact);
+  --sidebar-row-actions-width: 0px;
+}
+.conversation-row-host[data-action-count="1"] {
+  --sidebar-row-actions-width: var(--sidebar-row-action-size);
+}
+.conversation-row-host[data-action-count="2"] {
+  --sidebar-row-actions-width: calc(2 * var(--sidebar-row-action-size) + .125rem);
+}
+.conversation-row-host:hover .sidebar-row__body,
+.conversation-row-host:focus-within .sidebar-row__body {
+  padding-right: var(--sidebar-row-actions-width);
+}
+.sidebar-row.conversation-row-host:hover,
+.sidebar-row.conversation-row-host:focus-within,
+.sidebar-tree:focus-visible .conversation-row-host.sidebar-row--cursor {
+  padding-right: calc(var(--sidebar-row-actions-width) + .5rem);
+}
+.conversation-row-host .conversation-row-actions {
+  position: absolute;
+  right: .25rem;
+  top: 50%;
+  display: flex;
+  align-items: center;
+  gap: .125rem;
+  overflow: visible;
+  transform: translateY(-50%);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--xf-dur-fast) var(--xf-ease-soft);
+}
+.conversation-row-host:hover .conversation-row-actions,
+.conversation-row-host:focus-within .conversation-row-actions,
+.sidebar-tree:focus-visible .sidebar-row--cursor .conversation-row-actions {
+  opacity: 1;
+  pointer-events: auto;
+}
+@media (pointer: coarse) {
+  .conversation-row-host { --sidebar-row-action-size: max(var(--xf-control-compact), 44px); }
+}
+.sidebar-row:hover { background: var(--xf-hover); color: var(--xf-ink); }
+/* Feedback on press, not on release -- the same instant give `.nav-item` has,
+   so the two row families answer a click identically (HIG: response). */
+.sidebar-row:active { transform: scale(.98); }
+.sidebar-row:disabled { cursor: default; opacity: .55; }
+/* One accent at a time: the filled row is whatever is open right now. Nested
+   rows add a contained marker without changing their content geometry. */
+.sidebar-row.active { background: var(--xf-nav-selected); color: var(--xf-ink); font-weight: 550; }
+.sidebar-row.active::before {
+  content: "";
+  position: absolute;
+  inset-block: .375rem;
+  inset-inline-start: 2px;
+  inline-size: 2px;
+  border-radius: var(--xf-r-pill);
+  background: var(--xf-accent);
+  pointer-events: none;
+}
+.sidebar-row.active:hover { background: var(--xf-nav-selected-hover); }
+
+/* A container reads as one by its weight and by what sits indented beneath
+   it -- not by being a different size from its contents. */
+.sidebar-row--project { font-weight: 590; color: var(--xf-ink); }
+/* Status text belongs below the title and must contribute to the row height. */
+.sidebar-row--with-status {
+  height: auto;
+  min-height: var(--xf-nav-row-h);
+  padding-block: 6px;
+}
+/*
+ * "Which project am I in" is context, not selection, so it must NOT be drawn
+ * with a filled rect.
+ *
+ * It used to get its own neutral `surface-alt` fill, which put two different
+ * background tints in one column at once -- the reader then has to work out
+ * which of the two lit rows is the thing they actually opened. Weight and an
+ * accent chevron say "this is the project you are working in" without spending
+ * the one signal that means "this is what is open".
+ */
+.sidebar-row--project-context { color: var(--xf-ink); font-weight: 650; }
+.sidebar-row--project-context .sidebar-twisty { color: var(--xf-accent); }
+
+/* Expand/collapse affordance, sized to sit in the gutter left of a nav row so
+   the row's own label stays aligned with every other row in the sidebar. A row
+   with nothing to expand renders the same box empty, which is what keeps every
+   label at one depth aligned with the others. */
+.sidebar-twisty {
+  display: flex;
+  flex: none;
+  width: 1rem;
+  height: 1.5rem;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: var(--xf-r-sm);
+  background: transparent;
+  color: var(--xf-ink-faint);
+  cursor: pointer;
+}
+.sidebar-twisty:hover { background: var(--xf-hover); color: var(--xf-ink-2); }
+
+/* The projects tree: project > chat > the files that chat used. A fixed child
+ * column prevents a depth staircase. Disclosure chevrons, icons, and
+ * `aria-level` preserve both visual and semantic hierarchy.
+ *
+ * Focus sits on the container and the cursor row is named by
+ * `aria-activedescendant`, so the ring belongs to the container. */
+.sidebar-tree { display: flex; flex-direction: column; }
+.sidebar-tree:focus { outline: none; }
+.sidebar-tree:focus-visible { outline: 2px solid var(--xf-focus); outline-offset: 2px; }
+
+/* Depth is drawn from the level the row already declares, so the indent and
+   `aria-level` cannot drift apart. A project stands at the base inset -- level
+   with the "Projects" label above it, because a project row IS a heading for
+   what hangs under it -- and everything it contains steps in once per level. */
+.sidebar-tree .sidebar-row { padding-inline-start: var(--xf-nav-base-inset); }
+.sidebar-tree .sidebar-row[aria-level="2"] {
+  padding-inline-start: calc(var(--xf-nav-base-inset) + var(--xf-nav-indent));
+}
+.sidebar-tree .sidebar-row[aria-level="3"] {
+  padding-inline-start: calc(var(--xf-nav-base-inset) + var(--xf-nav-indent) * 2);
+}
+
+/* The keyboard cursor, which is not the same claim as "this is open": a person
+ * arrowing through the tree has moved the cursor without opening anything.
+ *
+ * Drawn ONLY while the tree actually holds keyboard focus. A ring parked on
+ * whatever row the cursor last touched is a third lit row competing with the
+ * selection and the current project, and it says nothing to a mouse user who
+ * will never move it. */
+.sidebar-tree:focus-visible .sidebar-row--cursor { box-shadow: inset 0 0 0 1px var(--xf-accent-ring); }
+
+/* A row that states something rather than going somewhere: "no chats yet", "4
+ * more files". It reads as prose, and it is not clickable. */
+.sidebar-row--note { color: var(--xf-ink-faint); font-size: var(--xf-type-chrome); cursor: default; }
+.sidebar-row--note:hover { background: transparent; color: var(--xf-ink-faint); }
+
+/* Pin and delete, revealed on hover or when something inside the row has
+   focus -- the same reveal the flat recents list uses. */
+.sidebar-row__actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: .125rem;
+  margin-left: auto;
+  opacity: 0;
+  transition: opacity var(--xf-dur-fast) var(--xf-ease-soft);
+}
+.sidebar-row:hover .sidebar-row__actions,
+.sidebar-row__actions:focus-within { opacity: 1; }
+/* A container row splits the slot in two. The action you came for -- a new
+   chat in this project -- is on screen at rest, quiet in the muted ink every
+   IconButton rests in. The action you cannot undo stays behind the hover, so
+   the row still holds one thing back rather than offering removal as a peer
+   of creation. The width is reserved either way, so nothing shifts. */
+.sidebar-row__actions--container { opacity: 1; }
+/* Held back at rest, because it repeats down every project row and a column of
+   identical glyphs at full strength is texture, not information. Legible
+   without hovering, which is the whole of what it needs to be. */
+.sidebar-row__actions--container > * {
+  opacity: .6;
+  transition: opacity var(--xf-dur-fast) var(--xf-ease-soft);
+}
+.sidebar-row__actions--container > .sidebar-row__action--quiet { opacity: 0; }
+.sidebar-row:hover .sidebar-row__actions--container > *,
+.sidebar-row__actions--container > :focus-visible { opacity: 1; }
+
+.app-sidebar__section > span {
+  display: block;
+  padding: .5rem .375rem;
+  color: var(--xf-ink-faint);
+  font-size: var(--xf-type-chrome);
+  line-height: 1.45;
+}
+.app-account-menu { position: relative; margin-top: .25rem; }
+.app-account-menu > span { display: flex; width: 100%; }
+.app-account-popover {
+  width: min(13.25rem, calc(100vw - 1rem));
+  min-width: 0;
+  padding: .25rem;
+  border-radius: var(--xf-r-lg);
+}
+.app-account-popover__item {
+  min-height: 2rem;
+  padding-block: .3125rem;
+  font-size: var(--xf-type-chrome);
+}
+.app-account-trigger {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: .625rem;
+  padding: .5rem;
+  border: 0;
+  border-radius: var(--xf-r-md);
+  background: transparent;
+  color: var(--xf-ink);
+  cursor: pointer;
+  text-align: left;
+}
+.app-account-trigger:hover { background: var(--xf-hover); }
+.app-account-trigger strong { font-size: var(--xf-type-chrome); font-weight: 600; }
+.app-account-menu__avatar {
+  display: grid;
+  width: 1.5rem;
+  height: 1.5rem;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--xf-accent-muted);
+  color: var(--xf-mark);
+}
+.app-account-menu__avatar svg { width: .875rem; height: .875rem; }
+.app-workspace {
+  container: chat-workspace / inline-size;
+  border: 1px solid var(--xf-border);
+  border-radius: var(--xf-panel-radius);
+  overflow: hidden;
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  flex-direction: column;
+  background: var(--xf-canvas);
+}
+.app-titlebar {
+  z-index: var(--xf-z-sticky);
+  display: grid;
+  grid-template-columns: 2.25rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: .625rem;
+  height: var(--xf-titlebar-height);
+  min-height: var(--xf-titlebar-height);
+  flex-shrink: 0;
+  padding:
+    max(.375rem, env(safe-area-inset-top))
+    max(.75rem, env(safe-area-inset-right))
+    .375rem
+    max(.75rem, env(safe-area-inset-left));
+  border-bottom: 1px solid var(--xf-border);
+  background: var(--xf-header);
+  backdrop-filter: blur(24px) saturate(160%);
+}
+.app-titlebar__identity { display: flex; min-width: 0; flex-direction: column; line-height: 1.2; }
+.app-titlebar__actions { min-width: 0; flex-direction: row; }
+.app-titlebar strong { font-size: var(--xf-type-chrome); font-weight: 650; letter-spacing: -.01em; }
+.app-titlebar__identity > span { color: var(--xf-ink-3); font-size: var(--xf-type-chrome); }
+.conversation-title { display: flex; min-width: 0; align-items: center; gap: .25rem; }
+.conversation-title__text { display: flex; min-width: 0; flex: 1; flex-direction: column; line-height: 1.2; }
+.conversation-title__subtitle { color: var(--xf-ink-3); font-size: var(--xf-type-chrome); }
+.conversation-title__input { min-width: 0; width: 100%; line-height: 1.2; }
+.app-command-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--xf-control-compact);
+  min-height: var(--xf-control-compact);
+  border: 1px solid transparent;
+  border-radius: var(--xf-r-md);
+  background: transparent;
+  color: var(--xf-ink-2);
+  cursor: pointer;
+}
+.app-command-button:hover { border-color: var(--xf-border); background: var(--xf-card); color: var(--xf-ink); }
+.app-command-button { gap: .4rem; padding: 0 .5rem; }
+.app-command-button kbd {
+  padding-left: .4rem;
+  border-left: 1px solid var(--xf-border);
+  color: var(--xf-ink-faint);
+  font-size: var(--xf-type-chrome);
+}
+.app-command-button span { color: inherit; font-size: var(--xf-type-chrome); }
+.canvas-panel {
+  font-size: var(--xf-type-caption);
+  line-height: 1.4;
+}
+.canvas-panel__header { height: var(--xf-titlebar-height); min-height: var(--xf-titlebar-height); background: var(--xf-header); }
+.canvas-panel__tab {
+  border-radius: 7px;
+  font-size: var(--xf-type-caption);
+  font-weight: 600;
+}
+.canvas-toolbar {
+  display: flex;
+  min-height: 3rem;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: .5rem;
+  padding: .5rem .75rem;
+  border-bottom: 1px solid var(--xf-hairline);
+  background: color-mix(in oklch, var(--xf-surface) 30%, transparent);
+  font-size: var(--xf-type-caption);
+  backdrop-filter: blur(8px);
+}
+.canvas-toolbar--end { justify-content: flex-end; }
+.canvas-input {
+  height: 2rem;
+  min-height: 2rem;
+  border-radius: 7px;
+  font-size: var(--xf-type-caption);
+  line-height: 1;
+}
+.canvas-input {
+  border: 1px solid var(--xf-border);
+  background: var(--xf-card);
+  color: var(--xf-ink);
+}
+.canvas-input::placeholder { color: var(--xf-ink-3); }
+.canvas-input:focus-visible {
+  border-color: var(--xf-accent);
+  outline: 2px solid var(--xf-focus);
+  outline-offset: 2px;
+}
+.canvas-meta-badge {
+  display: inline-flex;
+  min-height: 1.5rem;
+  align-items: center;
+  padding-inline: .5rem;
+  border-radius: 7px;
+  background: var(--xf-surface);
+  color: var(--xf-ink-3);
+  font-size: var(--xf-type-caption);
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+}
+.canvas-segmented-control {
+  /* The shared buttons own their minimum height; the track grows to fit them. */
+  height: auto;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: 2px;
+  overflow: visible;
+  border: 1px solid var(--xf-border);
+  border-radius: 7px;
+  background: var(--xf-surface-alt);
+}
+.canvas-segmented-control > button {
+  height: auto;
+  flex: 0 0 auto;
+  padding: 0 .625rem;
+  border-radius: 5px;
+  font-size: var(--xf-type-caption);
+  line-height: 1;
+}
+.app-chat-column {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+}
+/* Chat reading column (spec: chat-thread-layout). ONE token —
+   --xf-chat-measure — drives every chat width; the shell itself spans the
+   workspace so the scrollbar hugs the window edge. Explicit classes, never
+   positional selectors: adding a notice or approval to the live tail must not
+   change the chat column's width. */
+.chat-column-messages,
+.chat-column-composer {
+  width: 100%;
+  margin-inline: auto;
+  padding-inline: 1.25rem;
+  /* Chat reading type — 15px with a whisper of negative tracking, matching
+     web's .prose-chat. UI chrome inside (tool cards, hints) sets its own
+     explicit sizes and is unaffected. */
+  font-size: var(--xf-type-reading);
+  letter-spacing: -0.006em;
+}
+@media (min-width: 768px) {
+  /* 1.155 = the previous 1.05 widened 10%. Only the thread moves: the composer's
+     multiplier below is its own decision, and inheriting this one would undo the
+     step that deliberately narrowed it. */
+  .chat-column-messages { max-width: calc(var(--xf-chat-measure) * 1.155); }
+  /* 0.81 = the original 0.90 taken down 10%. The measure is shared, so widening
+     it for the thread widened the composer too; this step is what keeps the
+     composer's width its own decision rather than a side effect of the
+     thread's. Height is set on the control itself, not here. */
+  .chat-column-composer { max-width: calc(var(--xf-chat-measure) * 0.81); }
+}
+.app-sidebar-scrim {
+  position: fixed;
+  z-index: calc(var(--xf-z-overlay) - 1);
+  inset: 0;
+  border: 0;
+  background: var(--xf-scrim);
+}
+/* One overlay geometry and one scrim for every dialog (`ui/DialogShell.tsx`).
+   `top` is where a command palette belongs: high enough that its list opens
+   into the screen rather than pushing off the bottom. */
+.dialog-shell {
+  position: fixed;
+  z-index: var(--xf-z-modal);
+  inset: 0;
+  display: grid;
+  padding:
+    max(1rem, env(safe-area-inset-top))
+    max(1rem, env(safe-area-inset-right))
+    max(1rem, env(safe-area-inset-bottom))
+    max(1rem, env(safe-area-inset-left));
+}
+.dialog-shell--center { place-items: center; }
+.dialog-shell--top {
+  place-items: start center;
+  padding-top: min(18vh, 9rem);
+}
+/* A palette high on the screen settles down from its top edge. */
+.dialog-shell--top > .xf-overlay-pop { transform-origin: top center; }
+.dialog-scrim {
+  position: absolute;
+  inset: 0;
+  background: var(--xf-scrim);
+  backdrop-filter: blur(3px);
+}
+/* Surface, material border, blur, and pop-in come from `.xf-material` and
+   `.xf-overlay-pop` (see the component) -- the same floating-panel recipe every
+   other overlay uses. This class owns only what is genuinely this dialog's
+   own: how wide it is, and the radius/elevation pairing for a panel this far
+   up the screen. A hand-rolled copy of the shared three used to drift here --
+   170% saturation against the material's 180%, and the opaque card border
+   instead of the translucent one a blurred surface needs -- both silent, both
+   invisible until compared side by side with a menu popover. */
+.command-palette__dialog {
+  position: relative;
+  width: min(100%, 36rem);
+  overflow: hidden;
+  border-radius: var(--xf-r-xl);
+  box-shadow: var(--xf-elev-3);
+}
+.command-palette__search {
+  display: flex;
+  align-items: center;
+  gap: .625rem;
+  padding: .875rem 1rem;
+  border-bottom: 1px solid var(--xf-hairline);
+  color: var(--xf-ink-3);
+}
+.command-palette__search input {
+  min-width: 0;
+  flex: 1;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--xf-ink);
+  font-size: var(--xf-type-body);
+}
+.command-palette__dialog [role="listbox"] {
+  height: min(28rem, 52dvh);
+  overflow: auto;
+  padding: .375rem;
+}
+.command-palette__dialog [role="option"] {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: .625rem;
+  padding: .625rem .75rem;
+  border: 0;
+  border-radius: var(--xf-r-md);
+  background: transparent;
+  color: var(--xf-ink-2);
+  text-align: left;
+  cursor: pointer;
+  /* Every other primitive with a hover/active background -- `.nav-item`,
+     `MenuItem`, the composer's own palette -- states this same pair. This one
+     went from "resting" to "selected" as a hard cut; nothing else in the
+     shell does. */
+  transition: background-color var(--xf-dur-fast) var(--xf-ease-soft),
+              color var(--xf-dur-fast) var(--xf-ease-soft);
+}
+.command-palette__option-copy {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: .125rem;
+}
+.command-palette__hint {
+  overflow: hidden;
+  color: var(--xf-ink-3);
+  font-size: var(--xf-type-caption);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.command-palette__dialog [role="option"][aria-selected="true"] {
+  background: var(--xf-active);
+  color: var(--xf-ink);
+}
+/* Named the same way the sidebar names its groups, and set at the same caption
+   level, so the palette reads as the same product rather than a second one. */
+.command-palette__group {
+  margin: 0;
+  padding: .5rem .75rem .25rem;
+  color: var(--xf-ink-3);
+  font-size: var(--xf-type-label);
+  font-weight: 600;
+  letter-spacing: -.005em;
+}
+.command-palette__dialog [role="group"] + [role="group"] { margin-top: .25rem; }
+.command-palette__status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .5rem;
+  margin: 0;
+  padding: 1rem;
+  color: var(--xf-ink-3);
+  font-size: var(--xf-type-caption);
+  text-align: center;
+}
+.command-palette__footer {
+  display: flex;
+  justify-content: space-between;
+  gap: .75rem;
+  padding: .5rem .875rem .75rem;
+  border-top: 1px solid var(--xf-hairline);
+  color: var(--xf-ink-faint);
+  font-size: var(--xf-type-micro);
+}
+.command-palette__footer span {
+  display: inline-flex;
+  align-items: center;
+  gap: .25rem;
+}
+.command-palette__footer kbd {
+  margin-right: .125rem;
+}
+.app-startup,
+.app-recovery {
+  display: grid;
+  min-height: 100%;
+  place-items: center;
+  padding: 1.5rem;
+  background: var(--xf-canvas);
+}
+.app-startup > div,
+.app-recovery__panel {
+  width: min(100%, 28rem);
+  padding: 1.5rem;
+  border: 1px solid var(--xf-border);
+  border-radius: var(--xf-r-xl);
+  background: var(--xf-card);
+  box-shadow: var(--xf-elev-2);
+}
+/*
+ * Layout only -- no font-size, weight, or color here. This pair used to carry
+ * all three, at (0,1,1) specificity: higher than any single `.type-*` role
+ * class the heading or paragraph inside might carry (0,1,0), so it silently
+ * overrode them regardless of source order. `LoginView`'s own `HeroTitle`
+ * ("Sign in to xFalcon") was forced down from the hero size it asked for to
+ * this card's plain title size, and its `EmptyState` description was forced
+ * from `text-secondary` to a more muted ink than it declared. The four bare
+ * `<h1>`s these rules also style (App.tsx's two states, `AppErrorBoundary`,
+ * `AuthGate`'s authenticating state) had no competing class to lose, but
+ * inherited `font-weight: inherit` from Tailwind's own heading reset with
+ * nothing to countermand it, so they rendered unbolded next to every other
+ * heading role in the app. Each now carries `PageTitle` or an explicit
+ * `type-*` class instead of leaning on a container rule that could not tell
+ * a role-less tag from one that already knew what it wanted to be.
+ */
+.app-startup h1,
+.app-recovery h1 {
+  margin: 1rem 0 .375rem;
+}
+.app-startup p,
+.app-recovery p {
+  margin: 0;
+}
+
+/* Radix collapsible height animation (AI Elements tool rows + activity
+   card). Radix measures the content into --radix-collapsible-content-height
+   and keeps the node mounted until the close animation ends; the global
+   reduced-motion kill switch collapses both to instant. */
+.ai-collapsible-content { overflow: hidden; }
+.ai-collapsible-content[data-state="open"] {
+  animation: xf-collapse-open var(--xf-dur-slow) var(--xf-ease-panel) both;
+}
+.ai-collapsible-content[data-state="closed"] {
+  animation: xf-collapse-close var(--xf-dur-slow) var(--xf-ease-panel) both;
+}
+
+/* Agent activity — a compact disclosure when closed and a quiet inset sheet
+   when open. The hierarchy follows the same pattern as the product's premium
+   composer: material edge, lit top hairline, and one recessed content level.
+   No decorative glow and no new colour role; activity stays supporting chrome
+   beside the answer. */
+.tool-activity-shell {
+  position: relative;
+  isolation: isolate;
+  /* Allow the outer shell to ease between its intrinsic pill width and the
+     full-width open sheet instead of snapping at the close boundary. */
+  interpolate-size: allow-keywords;
+  overflow: hidden;
+  border: 1px solid var(--xf-material-border);
+  background: color-mix(in srgb, var(--xf-card) 94%, var(--xf-accent) 6%);
+  box-shadow: 0 1px 2px rgba(15,23,42,.04), 0 8px 24px rgba(15,23,42,.045);
+  backdrop-filter: blur(8px);
+  transition:
+    border-color var(--xf-dur-fast) var(--xf-ease-soft),
+    box-shadow var(--xf-dur-base) var(--xf-ease-soft),
+    background-color var(--xf-dur-base) var(--xf-ease-soft);
+}
+.tool-activity-shell::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 0 0 auto;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 4%, color-mix(in srgb, var(--xf-accent) 24%, transparent), transparent 96%);
+  pointer-events: none;
+}
+.tool-activity-shell:hover {
+  border-color: color-mix(in srgb, var(--xf-accent) 18%, var(--xf-border));
+  box-shadow: 0 1px 2px rgba(15,23,42,.04), 0 10px 28px rgba(15,23,42,.065);
+}
+.tool-activity-shell[data-state="open"] {
+  border-color: color-mix(in srgb, var(--xf-accent) 15%, var(--xf-border));
+  background: color-mix(in srgb, var(--xf-card) 97%, var(--xf-accent) 3%);
+}
+.tool-activity-shell__trigger {
+  min-height: 2.25rem;
+  padding: .375rem .5rem .375rem .625rem;
+  color: var(--xf-ink-2);
+  outline: none;
+  transition:
+    color var(--xf-dur-fast) var(--xf-ease-soft),
+    background-color var(--xf-dur-fast) var(--xf-ease-soft);
+}
+.tool-activity-shell__trigger:hover {
+  color: var(--xf-ink);
+  background: color-mix(in srgb, var(--xf-accent) 4%, transparent);
+}
+.tool-activity-shell__trigger:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--xf-accent-ring);
+}
+.tool-activity-shell__leading {
+  display: grid;
+  width: 1.5rem;
+  height: 1.5rem;
+  flex: none;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--xf-accent) 16%, var(--xf-hairline));
+  border-radius: var(--xf-r-md);
+  background: color-mix(in srgb, var(--xf-accent) 8%, var(--xf-card));
+  color: var(--xf-accent-hover);
+  box-shadow: 0 1px 1px rgba(15,23,42,.04);
+}
+.tool-activity-shell__leading--bare {
+  /* The working indicator sizes the slot itself, so the dots sit as close to
+     the words as the words' own spacing, not inside a fixed square. */
+  width: auto;
+  height: auto;
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+}
+.tool-activity-shell__spinner { color: var(--xf-accent); }
+/* The working indicator (ui/LatticeLoader): a light travelling across a grid
+   of dots. Every lit cell runs one fade over the whole loop, started a number
+   of steps after the first, so a bright front moves with a short tail behind
+   it. Cells that never light just stay dim. */
+.lattice-loader {
+  display: inline-grid;
+  flex: none;
+  grid-template-columns: repeat(var(--lattice-n), var(--lattice-cell));
+  gap: var(--lattice-gap);
+}
+.lattice-loader__cell {
+  width: var(--lattice-cell);
+  height: var(--lattice-cell);
+  border-radius: 9999px;
+  background: currentColor;
+  opacity: .22;
+}
+.lattice-loader[data-shape="square"] .lattice-loader__cell { border-radius: 1px; }
+.lattice-loader__cell[data-lit] {
+  animation: lattice-orbit calc(var(--lattice-step) * var(--lattice-loop)) linear infinite;
+  animation-delay: calc(var(--lattice-step) * var(--lattice-delay));
+}
+.lattice-loader[data-pattern="arrow"] .lattice-loader__cell[data-lit] { animation-name: lattice-arrow; }
+@keyframes lattice-orbit {
+  0% { opacity: 1; }
+  45%, 100% { opacity: .22; }
+}
+@keyframes lattice-arrow {
+  0% { opacity: 1; }
+  38%, 100% { opacity: .22; }
+}
+/* The run block's working status: the rotating phrase and the stopwatch as one
+   line, in the product face. */
+.thinking-status {
+  display: inline-flex;
+  align-items: baseline;
+  gap: .6em;
+  font-family: var(--xf-font-sans);
+  font-size: calc(var(--xf-type-caption) + .5px);
+}
+.thinking-status__timer {
+  min-width: 5.5ch;
+  color: var(--xf-ink-faint);
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+}
+/* A tool-activity label that changes with the phrase must not change the
+   pill's width. The hidden ::after holds the longest phrase's width. */
+.rotating-label {
+  display: inline-block;
+  font-weight: 600;
+}
+.rotating-label::after {
+  content: attr(data-reserve);
+  display: block;
+  height: 0;
+  overflow: hidden;
+  visibility: hidden;
+}
+@media (prefers-reduced-motion: reduce) {
+  .lattice-loader__cell[data-lit] { animation: none; opacity: .55; }
+}
+.tool-activity-shell__chevron {
+  display: grid;
+  width: 1.5rem;
+  height: 1.5rem;
+  flex: none;
+  place-items: center;
+  border: 1px solid var(--xf-hairline);
+  border-radius: var(--xf-r-md);
+  background: color-mix(in srgb, var(--xf-surface-alt) 72%, transparent);
+  color: var(--xf-ink-faint);
+  transition:
+    border-color var(--xf-dur-fast) var(--xf-ease-soft),
+    background-color var(--xf-dur-fast) var(--xf-ease-soft),
+    color var(--xf-dur-fast) var(--xf-ease-soft);
+}
+.tool-activity-shell__trigger:hover .tool-activity-shell__chevron {
+  border-color: color-mix(in srgb, var(--xf-accent) 20%, var(--xf-border));
+  background: color-mix(in srgb, var(--xf-accent) 7%, var(--xf-card));
+  color: var(--xf-accent-hover);
+}
+.tool-activity-shell__body {
+  margin: 0 .375rem .375rem;
+  padding: .375rem;
+  border: 1px solid var(--xf-hairline);
+  border-radius: calc(var(--xf-r-lg) - 2px);
+  background: color-mix(in srgb, var(--xf-surface-alt) 58%, var(--xf-card));
+  box-shadow: inset 0 1px 2px rgba(15,23,42,.025);
+}
+.tool-activity-row {
+  color: var(--xf-ink-2);
+  transition:
+    background-color var(--xf-dur-fast) var(--xf-ease-soft),
+    color var(--xf-dur-fast) var(--xf-ease-soft);
+}
+.tool-activity-row:hover {
+  background: color-mix(in srgb, var(--xf-card) 76%, transparent);
+  color: var(--xf-ink);
+}
+.tool-state-glyph {
+  border: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+  background: color-mix(in srgb, currentColor 7%, transparent);
+}
+.tool-state-glyph[data-state="output-available"] {
+  border-color: color-mix(in srgb, var(--xf-success) 18%, transparent);
+  background: color-mix(in srgb, var(--xf-success) 8%, transparent);
+}
+@media (prefers-reduced-transparency: reduce) {
+  .tool-activity-shell { background: var(--xf-card); backdrop-filter: none; }
+}
+@media (pointer: coarse) {
+  .tool-activity-shell__trigger { min-height: 2.75rem; }
+}
+@media (forced-colors: active) {
+  .tool-activity-shell,
+  .tool-activity-shell__leading,
+  .tool-activity-shell__chevron,
+  .tool-activity-shell__body,
+  .tool-state-glyph { border-color: CanvasText; box-shadow: none; }
+  .tool-activity-shell__trigger:focus-visible { outline: 2px solid Highlight; outline-offset: -2px; box-shadow: none; }
+}
+@keyframes xf-collapse-open {
+  from { height: 0; opacity: .92; transform: translateY(-2px); }
+  to { height: var(--radix-collapsible-content-height); opacity: 1; transform: none; }
+}
+@keyframes xf-collapse-close {
+  from { height: var(--radix-collapsible-content-height); opacity: 1; transform: none; }
+  to { height: 0; opacity: .92; transform: translateY(-2px); }
+}
+
+/* Message roles (spec: chat-thread-layout). The user's words sit in a
+   dedicated bubble surface with a speech-tail corner; the assistant stays
+   flat prose identified by a 1px rail — brand accent on the latest turn,
+   hairline on history. Alignment stays the primary role signal; the rail is
+   reinforcement, never the sole channel. */
+.user-bubble {
+  background: var(--xf-bubble-bg);
+  border: 1px solid var(--xf-bubble-border);
+  color: var(--xf-bubble-fg);
+  border-radius: 1rem;
+  border-end-end-radius: .45rem;
+  box-shadow: var(--xf-elev-1);
+}
+.assistant-accent,
+.assistant-accent-latest { position: relative; padding-left: 12px; }
+.assistant-accent::before,
+.assistant-accent-latest::before {
+  content: "";
+  position: absolute;
+  left: 0; top: .5rem; bottom: .5rem;
+  /* Ink, not width (spec: chat-thread-layout). A 0.5px box does not paint at
+     all on this engine — pixel-sampled at device scale 1 and 2, the column
+     comes back pure background — so the rail keeps its one device pixel and
+     gives up presence instead, now a quarter mix. Every answer opens with the
+     response ribbon; the rail only has to whisper under it. */
+  width: 1px;
+  background: linear-gradient(to bottom, transparent,
+    color-mix(in oklab, var(--xf-border) 25%, transparent) 14%,
+    color-mix(in oklab, var(--xf-border) 25%, transparent) 86%, transparent);
+}
+.assistant-accent-latest::before {
+  background: linear-gradient(to bottom, transparent,
+    color-mix(in oklab, var(--xf-accent) 25%, transparent) 14%,
+    color-mix(in oklab, var(--xf-accent) 25%, transparent) 86%, transparent);
+}
+
+/* Response boundary (spec: chat-thread-layout) — a labelled hairline above
+   every assistant answer, so the step from the run's activity into the answer
+   reads identically whether tools ran or not. The rule dissolves within the
+   first third of the measure: the marker is the start of the answer, not a
+   divider across it.
+
+   The ink follows the row's own latest/history state, the same signal the
+   vertical rail beside it uses — the newest answer is the only accented one,
+   and both of its marks agree. */
+.response-ribbon {
+  --xf-ribbon-ink: var(--xf-border);
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  padding-block: 1px 5px;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.response-ribbon--latest { --xf-ribbon-ink: var(--xf-accent); }
+.response-ribbon__label {
+  font-size: var(--xf-type-micro);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--xf-ink-faint);
+}
+.response-ribbon__rule {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(to right,
+    color-mix(in oklab, var(--xf-ribbon-ink) 25%, transparent), transparent 31%);
+}
+
+/* Hover-revealed message actions — height is always reserved by the row;
+   only opacity/offset animate, so revealing them never shifts content. */
+.actions-slide {
+  opacity: 0;
+  transform: translateX(6px);
+  transition: opacity var(--xf-dur-fast) var(--xf-ease-soft),
+              transform var(--xf-dur-fast) var(--xf-ease-soft);
+}
+.group\/turn:hover .actions-slide,
+.group\/turn:focus-within .actions-slide,
+.actions-slide:focus-within { opacity: 1; transform: none; }
+@media (pointer: coarse) {
+  .actions-slide { opacity: 1; transform: none; }
+}
+
+/* Live thinking block inside the activity card (spec: chat-run-activity) —
+   the same caret as the transcript stream, sized to the card's quiet type. */
+.thinking-streaming::after {
+  content: "";
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  margin-left: 2px;
+  vertical-align: -0.12em;
+  border-radius: 1px;
+  background: var(--xf-accent);
+  animation: xf-caret-pulse 1.2s var(--xf-ease-soft) infinite;
+}
+
+/* Streaming caret (spec: chat-motion-system) — measured from the final
+   rendered text node, so it follows prose, headings, lists and nested markdown
+   instead of landing after the last block's box. Its position must update in
+   the same paint as the glyph: easing the transform leaves it on the previous
+   line for several streamed frames whenever text wraps. */
+.streaming-caret .assistant-markdown { position: relative; }
+.assistant-markdown > .streaming-text-caret {
+  --xf-stream-caret-x: 0px;
+  --xf-stream-caret-y: 0px;
+  --xf-stream-caret-height: 1.05em;
+  position: absolute;
+  inset: 0 auto auto 0;
+  /* This span is the final direct child of `.assistant-markdown`. Neutralize
+     the prose sibling rhythm that otherwise adds .75em and moves the measured
+     caret down by half a line after every render. */
+  margin: 0;
+  width: 2px;
+  height: var(--xf-stream-caret-height);
+  border-radius: 1px;
+  background: var(--xf-accent);
+  pointer-events: none;
+  transform: translate3d(var(--xf-stream-caret-x), var(--xf-stream-caret-y), 0);
+  will-change: transform;
+  box-shadow: 0 0 4px 0 var(--xf-accent-muted);
+  animation: xf-caret-pulse 1.2s var(--xf-ease-soft) infinite;
+}
+.streaming-text-caret:not([data-positioned="true"]) { visibility: hidden; }
+@keyframes xf-caret-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .45; }
+}
+
+/* Assistant markdown — reader typography. The global reset flattens every
+   element, so without these rules a rendered markdown tree is visually
+   indistinguishable from plain text. Kept in visual lockstep with web's
+   MarkdownRenderer. */
+.assistant-markdown { min-width: 0; max-width: 100%; line-height: 1.76; overflow-wrap: break-word; }
+.assistant-markdown > * + * { margin-top: .75em; }
+.assistant-markdown h1,
+.assistant-markdown h2,
+.assistant-markdown h3,
+.assistant-markdown h4,
+.assistant-markdown h5,
+.assistant-markdown h6 {
+  font-weight: 600;
+  color: var(--xf-ink);
+  line-height: 1.3;
+  letter-spacing: -0.015em;
+  /* Asymmetric on purpose, and decisively so. A heading belongs to what follows
+     it, so the space above it (separating topics) has to be several times the
+     space below it (joining it to its content). Near-equal gaps, which is what
+     1.4em/0.4em produced once line-height leading was added on both sides, leave
+     the reader no grouping signal at all. */
+  margin-top: 1.9em;
+  margin-bottom: .3em;
+}
+/* Model-authored prose runs its own em-relative ladder rather than the product
+   type roles. The roles are absolute steps sized for UI chrome; a heading inside
+   a transcript has to hold its ratio to the fluid reading role around it, which
+   already answers both the reading-size setting and the window width. Anything
+   here in rem would break that ratio at two of the three reading sizes. */
+.assistant-markdown h1 { font-size: 1.45em; }
+.assistant-markdown h2 { font-size: 1.22em; }
+.assistant-markdown h3 { font-size: 1.08em; }
+.assistant-markdown h4 { font-size: 1em; }
+.assistant-markdown h5 { font-size: .95em; }
+.assistant-markdown h6 { font-size: .9em; color: var(--xf-ink-2); }
+.assistant-markdown ul, .assistant-markdown ol { padding-left: 1.5em; }
+.assistant-markdown ul { list-style: disc; }
+.assistant-markdown ul ul { list-style: circle; }
+.assistant-markdown ul ul ul { list-style: square; }
+.assistant-markdown ol { list-style: decimal; }
+.assistant-markdown li + li { margin-top: .3em; }
+.assistant-markdown li > ul, .assistant-markdown li > ol { margin-top: .3em; }
+.assistant-markdown .contains-task-list { padding-left: 0; list-style: none; }
+.assistant-markdown .task-list-item { position: relative; padding-left: 1.5em; }
+.assistant-markdown .task-list-item > input { position: absolute; top: .45em; left: 0; margin: 0; }
+.assistant-markdown .task-list-item .contains-task-list { padding-left: 1.5em; }
+.assistant-markdown a { color: var(--xf-accent-hover); text-decoration: underline; text-underline-offset: 2px; }
+.assistant-markdown strong { font-weight: 600; color: var(--xf-ink); }
+.assistant-markdown blockquote {
+  border-left: 3px solid var(--xf-border-strong);
+  padding-left: .875em;
+  color: var(--xf-ink-2);
+}
+.assistant-markdown hr { border: 0; border-top: 1px solid var(--xf-border); margin: 1.25em 0; }
+/* Inline code sits INSIDE a sentence, so it is tinted rather than boxed: a
+   1px border on every identifier in a paragraph reads as a row of buttons, and
+   at .85em the mono face sank a full step below the prose around it. */
+.assistant-markdown__inline-code {
+  font-family: var(--xf-font-mono);
+  font-size: .875em;
+  font-weight: 500;
+  background: var(--xf-surface-alt);
+  color: var(--xf-inline-code);
+  border-radius: var(--xf-r-xs);
+  padding: .1em .35em;
+  /* The tint is the boundary, so it needs to hug the glyphs rather than break
+     the line's rhythm when the code wraps. */
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+.assistant-markdown pre {
+  background: var(--xf-surface-alt);
+  border: 1px solid var(--xf-hairline);
+  border-radius: var(--xf-r-md);
+  padding: .875em 1em;
+  overflow-x: auto;
+}
+.assistant-markdown pre code,
+.rich-card__code code {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  font-weight: 400;
+}
+
+/*
+ * "Back to the latest" — floating chrome OVER the transcript, not a control
+ * parked on it.
+ *
+ * It sits directly on top of whatever card the reader stopped at, so it has to
+ * read as a separate layer. A translucent material with real blur and a raised
+ * shadow says that; an opaque `bg-card` with `shadow-sm` reads as a button that
+ * happens to overlap the content (HIG: floating layers are materials, and a
+ * bigger separation needs a deeper shadow).
+ */
+.chat-jump {
+  position: absolute;
+  bottom: 1rem;
+  left: 50%;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: .375rem;
+  transform: translateX(-50%);
+  border: 1px solid var(--xf-border);
+  border-radius: var(--xf-r-pill);
+  background: var(--xf-elevated);
+  color: var(--xf-ink-2);
+  box-shadow: var(--xf-elev-2);
+  backdrop-filter: blur(20px) saturate(180%);
+  cursor: pointer;
+  transition:
+    color var(--xf-dur-fast) var(--xf-ease-soft),
+    border-color var(--xf-dur-fast) var(--xf-ease-soft),
+    box-shadow var(--xf-dur-base) var(--xf-ease-soft),
+    transform var(--xf-dur-base) var(--xf-ease-spring);
+}
+@media (hover: hover) {
+  .chat-jump:hover {
+    color: var(--xf-ink);
+    border-color: var(--xf-border-strong);
+    box-shadow: var(--xf-elev-3);
+    transform: translateX(-50%) translateY(-1px);
+  }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .chat-jump { background: var(--xf-card); backdrop-filter: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .chat-jump:hover { transform: translateX(-50%); }
+}
+
+/* Rich fence cards (spec: chat-rich-content) — one shell for the code card,
+   data table, and sandboxed HTML preview.
+
+   ONE inline padding for every part of the card — header, code, prose, footer,
+   and the table's outer columns all start on the same vertical line, so a `sql`
+   fence and a result table stacked in one answer read as one column of content
+   rather than three indents. `--xf-card-gutter` is that line. */
+.rich-card {
+  --xf-card-gutter: .875rem;
+  /* Rhythm: a card is a block of its own, and the paragraph that introduces it
+     is pulled closer than the gap to the next topic (grouped by proximity).
+     The close-up is in the sibling rule below. */
+  margin: 1.25em 0;
+  /* `--xf-card` and `--xf-canvas` are both #ffffff, so a hairline was the ONLY
+     thing separating a card from the page — and #ececec on white is not an edge,
+     it is a suggestion. The border is the crisp step now, and the card carries no
+     resting shadow: a defined border plus a shadow on a flat content block reads
+     as mud, where either one alone reads as deliberate. */
+  border: 1px solid var(--xf-border);
+  border-radius: var(--xf-r-lg);
+  background: var(--xf-card);
+  min-width: 0;
+  overflow: hidden;
+  transition:
+    border-color var(--xf-dur-fast) var(--xf-ease-soft),
+    box-shadow var(--xf-dur-base) var(--xf-ease-soft);
+}
+.rich-card--degraded { border-color: var(--xf-warn); }
+/* The prose that introduces a card belongs WITH it. A card following a
+   paragraph or heading closes right up; the margin above that text is what keeps
+   the separation between topics. */
+.assistant-markdown :is(p, h1, h2, h3, h4, h5, h6) + .rich-card { margin-top: .25em; }
+/* And the prose that FOLLOWS a card is a new thought, not a caption. */
+.assistant-markdown .rich-card + :is(p, h1, h2, h3, h4, h5, h6) { margin-top: 1.5em; }
+/* Consecutive cards share one seam rather than two full gaps. */
+.rich-card + .rich-card { margin-top: .625em; }
+/* Not a hover lift — the card is content, not a control. The border firming up
+   is what says the actions in its header are live. */
+@media (hover: hover) {
+  .rich-card:hover {
+    border-color: var(--xf-border-strong);
+    box-shadow: var(--xf-elev-1);
+  }
+}
+/* Identity leading, actions trailing, ONE band — not a header row plus an
+   action row. This chrome stands above every six-line `sql` fence in the
+   transcript, so a second band would double the ink on the most-repeated
+   surface in an answer. One shared minimum keeps mixed artifact headers on the
+   same line; text scaling may grow every header together rather than clip it
+   (spec: chat-rich-content). */
+.rich-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+  /* The 32px compact control role with 6px of clearance above and below. */
+  min-height: 2.75rem;
+  padding: 0 var(--xf-card-gutter);
+  /* No fill. The card used to stack three near-identical light greys — a
+     #f6f7f9 header on an #f3f3f3 code body inside a #ffffff card — none of which
+     a reader can tell apart, and which together turn the card's edges to mush.
+     The card has ONE tinted region now: the content. Where the content is tinted
+     (code) the tone change is itself the seam; where it is not (a table) this
+     hairline draws it. */
+  border-bottom: 1px solid var(--xf-hairline);
+  background: transparent;
+}
+/* Both fields are model-authored text. They clamp, and neither can displace
+   or resize the action row — a four-thousand-character `<title>` costs an
+   ellipsis and nothing else. */
+.rich-card__identity {
+  display: flex;
+  align-items: baseline;
+  gap: .5rem;
+  flex: 1 1 auto;
+  min-width: min(5rem, 35%);
+  overflow: hidden;
+}
+/*
+ * ONE type size across the whole band, hierarchy carried by weight alone.
+ *
+ * The two sides used to be set differently in every respect — a 12px/600 title
+ * and an 11px/400 meta on the left, against 11px/400 actions in a different grey
+ * on the right — so the band read as two unrelated pieces of text that happened
+ * to share a row. In dense UI, hierarchy comes from weight and ink, and size
+ * stays put (HIG: build hierarchy from weight + size + leading as a set, and
+ * dense information wants the size held constant).
+ */
+.rich-card__title,
+.rich-card__meta {
+  font-size: var(--xf-type-caption);
+  letter-spacing: -.005em;
+}
+.rich-card__title {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+  color: var(--xf-ink-2);
+}
+.rich-card__meta {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+  color: var(--xf-ink-3);
+}
+.rich-card__actions {
+  display: flex;
+  flex: 0 1 auto;
+  align-items: center;
+  gap: .3125rem;
+  max-width: calc(100% - min(5rem, 35%));
+  min-width: 0;
+  padding-block: .25rem;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  scrollbar-width: thin;
+}
+/*
+ * A card action is the app's toolbar button (`Button` secondary, small; see
+ * `ARTIFACT_ACTION_CLASS`), so its look, hover, press, and disabled state come
+ * from there. Only what a card row needs on top of it lives here.
+ */
+.rich-card__action,
+.rich-card__actions > button {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.rich-card__action[data-state="failed"] {
+  border-color: color-mix(in oklab, var(--xf-danger) 55%, var(--xf-border));
+  background: var(--xf-danger-bg);
+  color: var(--xf-danger);
+}
+@media (pointer: coarse) {
+  .rich-card__header { min-height: 3.5rem; }
+}
+.rich-card__prose { padding: .5rem var(--xf-card-gutter); }
+.rich-card__code {
+  margin: 0;
+  padding: .8125rem var(--xf-card-gutter);
+  background: var(--xf-surface-alt);
+  border: 0;
+  border-radius: 0;
+  max-height: 28rem;
+  overflow: auto;
+  /* Inline only, as for `.rich-card__scroll`: long lines make this a scroll
+     container on both axes, and a contained block axis swallowed the wheel. */
+  overscroll-behavior-inline: contain;
+  /* Fixed, not relative to the reading measure: code is scanned column-by-column
+     and must not resize with the prose around it. One declaration for the pre and
+     its code child, which used to disagree (.85em against .8125rem). */
+  font-size: var(--xf-type-label);
+  line-height: 1.65;
+}
+.rich-card__table-ghost {
+  display: grid;
+  gap: .5rem;
+  min-height: 7.5rem;
+  padding: .875rem var(--xf-card-gutter);
+}
+.rich-card__table-ghost > * { height: 1.5rem; border-radius: var(--xf-r-xs); }
+.rich-card__frame {
+  display: block;
+  width: 100%;
+  height: var(--xf-preview-height);
+  border: 0;
+  background: #fff; /* documents assume a light canvas until they say otherwise */
+  opacity: 0; /* fades in on load — no white pop while the document parses */
+  transition: opacity var(--xf-dur-base) var(--xf-ease-soft);
+}
+.rich-card__frame--loaded { opacity: 1; }
+/* Registration/streaming stand-in — SAME height as the settled frame, so
+   ghost→frame swaps never move the transcript (spec: chat-rich-content). */
+.rich-card__frame-ghost {
+  height: var(--xf-preview-height);
+  border-radius: 0;
+}
+/* Only the inline axis is contained. A wide table is a scroll container on both
+   axes, so the webview hands it the wheel; with the block axis contained too, a
+   vertical wheel over a table that is wide but not tall went nowhere instead of
+   scrolling the transcript or the file pane around it. */
+.rich-card__scroll { max-height: 24rem; overflow: auto; overscroll-behavior-inline: contain; }
+/* The project file view (spec: project-file-editing) draws a file through these
+   same cards. There the card is the whole pane, not one turn in a transcript: it
+   sits flush and fills the pane as a column, its header (name and actions) stays
+   put, and only the body -- the document, table, prose, or lines -- scrolls.
+   Direct children only, so a code fence INSIDE a Markdown file keeps the chat's
+   cap. `:not(.hidden)` keeps the source toggle's hidden half hidden. */
+.project-file-rich { display: flex; flex-direction: column; }
+.project-file-rich > .rich-card {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  margin: 0;
+}
+.project-file-rich > .rich-card > .rich-card__header,
+.project-file-rich > .rich-card > .rich-card__footer { flex: none; }
+.project-file-rich > .rich-card > div:not(.rich-card__header):not(.hidden),
+.project-file-rich > .rich-card > .rich-card__code:not(.hidden) {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  max-height: none;
+  overflow: auto;
+}
+.project-file-rich > .rich-card > div > .rich-card__scroll,
+.project-file-rich > .rich-card > div > .rich-card__frame,
+.project-file-rich > .rich-card > div > .rich-card__frame-ghost,
+.project-file-rich > .rich-card > div > .project-file-lines {
+  flex: 1 1 auto;
+  height: auto;
+  min-height: 0;
+  max-height: none;
+}
+/* A file as virtualized lines (`VirtualLines.tsx`): fixed-height rows that never
+   wrap, so a million lines scroll with one layout. It fills the pane standalone,
+   and fills the card's body inside a code card. */
+/* Shared selection track for tabs and segmented controls. The thumb is
+   measured against the real option buttons and animated outside React. */
+.elastic-selection {
+  position: relative;
+  isolation: isolate;
+  touch-action: pan-y;
+}
+.elastic-selection__thumb {
+  position: absolute;
+  z-index: 0;
+  inset: auto;
+  border: 1px solid var(--xf-border);
+  border-radius: var(--xf-r-sm);
+  background: var(--xf-card);
+  box-shadow: var(--xf-elev-1);
+  pointer-events: none;
+  opacity: 0;
+  will-change: transform;
+}
+.elastic-selection__item {
+  position: relative;
+  z-index: 1;
+  background: transparent;
+}
+.elastic-selection__item[aria-checked="true"],
+.elastic-selection__item[aria-selected="true"] { color: var(--xf-ink); }
+.elastic-selection__item:hover:not(:disabled) { color: var(--xf-ink); }
+
+.tabs-strip {
+  position: relative;
+  display: inline-flex;
+  max-width: 100%;
+  align-items: center;
+  gap: .125rem;
+  overflow-x: auto;
+  border: 1px solid var(--xf-border);
+  border-radius: var(--xf-r-md);
+  background: var(--xf-surface-alt);
+  padding: .2rem;
+}
+.tabs-strip__tab {
+  display: inline-flex;
+  flex: none;
+  height: 2rem;
+  align-items: center;
+  padding: 0 .75rem;
+  border-radius: var(--xf-r-sm);
+  font-size: var(--xf-type-label);
+  font-weight: 600;
+  white-space: nowrap;
+  transition: color var(--xf-dur-fast) var(--xf-ease-soft);
+  -webkit-user-select: none;
+  user-select: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .elastic-selection__thumb { will-change: auto; }
+}
+@media (forced-colors: active) {
+  .elastic-selection__thumb { outline: 1px solid Highlight; }
+}
+/* The day's greeting on the new-chat screen (`EmptyConversation.tsx`). One
+   animation does the whole visit: it grows into the space above the heading,
+   holds, then fades and shrinks back out, so the heading settles where it
+   started. Without motion it simply sits there until the component removes it. */
+.daily-greeting {
+  display: grid;
+  grid-template-rows: 1fr;
+  animation: daily-greeting var(--daily-greeting-ms, 7s) ease both;
+}
+.daily-greeting > p {
+  min-height: 0;
+  margin: 0;
+  overflow: hidden;
+}
+@keyframes daily-greeting {
+  0% { grid-template-rows: 0fr; opacity: 0; }
+  7% { grid-template-rows: 1fr; opacity: 1; }
+  88% { grid-template-rows: 1fr; opacity: 1; }
+  100% { grid-template-rows: 0fr; opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .daily-greeting { animation: none; }
+}
+/* The project tree's rows and indent guides (`ProjectTree.tsx`). A row's hover,
+   selection, and keyboard-cursor marks are drawn from its own indent rightwards
+   (`--tree-row-indent`), never under the guides to its left: the guides say
+   where a row sits, and that must read the same whether or not it is chosen. */
+.project-tree__row::before {
+  content: "";
+  position: absolute;
+  top: 1px;
+  right: 4px;
+  bottom: 1px;
+  left: var(--tree-row-indent, 0);
+  border-radius: var(--xf-r-sm);
+  pointer-events: none;
+  transition: background-color var(--xf-dur-fast) var(--xf-ease-soft);
+}
+.project-tree__row > :not(.project-tree__guide) { position: relative; }
+.project-tree__row[data-openable]:hover::before { background: var(--xf-hover); }
+.project-tree__row[aria-selected="true"]::before { background: var(--xf-active); }
+.project-tree__row[data-cursor]::before { box-shadow: inset 0 0 0 1px var(--xf-accent-ring); }
+.project-tree__guide {
+  position: absolute;
+  top: 0;
+  left: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+/* Butt caps, not round: each row draws its own segment, and a round cap would
+   overlap the next row's and double the translucent line at every seam. */
+.project-tree__branch,
+.project-tree__reach {
+  fill: none;
+  stroke-width: 1.5;
+}
+.project-tree__branch { stroke: color-mix(in oklab, var(--xf-ink-3) 45%, transparent); }
+/* The way from the top of the tree to the chosen row, in the accent. The row's
+   own elbow draws itself in; `pathLength` is 1, so the dash is one unit. */
+.project-tree__reach { stroke: var(--xf-accent); }
+.project-tree__reach[data-draw] {
+  stroke-dasharray: 1;
+  animation: project-tree-reach 400ms cubic-bezier(.23, 1, .32, 1) both;
+}
+@keyframes project-tree-reach {
+  from { stroke-dashoffset: 1; }
+  to { stroke-dashoffset: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .project-tree__reach[data-draw] { animation: none; stroke-dasharray: none; }
+}
+@media (forced-colors: active) {
+  .project-tree__branch { stroke: GrayText; }
+  .project-tree__reach { stroke: Highlight; }
+  .project-tree__row[aria-selected="true"]::before { outline: 1px solid Highlight; }
+  /* The keyboard cursor is a box-shadow ring, which forced colours drop. */
+  .project-tree__row[data-cursor]::before { outline: 1px dashed Highlight; }
+}
+/* A file's type tag in the tree (`fileTypeLabel.ts`): smaller than the name,
+   on its line, in its type's colour. The colour is the chart series hue mixed
+   30% toward the ink, because the raw hues fall short of 4.5:1 as 10px text
+   (cyan, orange and pink read about 3.5:1 on white); the mix clears 4.5:1 in
+   both themes, on the selected row too, and each hue stays recognisable. Red is the danger colour as it
+   was; an unlisted type keeps muted ink. */
+.file-type-label {
+  font-size: .625rem;
+  font-weight: 700;
+  letter-spacing: .02em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--xf-ink-3);
+}
+.file-type-label--blue { color: color-mix(in oklab, var(--xf-chart-4) 70%, var(--xf-ink)); }
+.file-type-label--cyan { color: color-mix(in oklab, var(--xf-chart-1) 70%, var(--xf-ink)); }
+.file-type-label--violet { color: color-mix(in oklab, var(--xf-chart-2) 70%, var(--xf-ink)); }
+.file-type-label--amber,
+.file-type-label--orange { color: color-mix(in oklab, var(--xf-chart-3) 70%, var(--xf-ink)); }
+.file-type-label--pink { color: color-mix(in oklab, var(--xf-chart-5) 70%, var(--xf-ink)); }
+.file-type-label--green { color: color-mix(in oklab, var(--xf-chart-6) 70%, var(--xf-ink)); }
+.file-type-label--red { color: var(--xf-danger); }
+.project-file-lines { min-height: 12rem; }
+.rich-card .project-file-lines {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+/* `line-height` is `LINE_HEIGHT_PX` and `tab-size` is `TAB_COLUMNS`: the rows are
+   positioned and the scroll width is measured from those two numbers. */
+.project-file-lines__row { line-height: 20px; white-space: pre; tab-size: 4; padding-inline: .75rem; }
+.project-file-lines__number { padding-right: 1.5ch; }
+.project-file-lines__text { min-width: 0; }
+.rich-card__footer {
+  margin: 0;
+  padding: .4375rem var(--xf-card-gutter);
+  border-top: 1px solid var(--xf-hairline);
+}
+.rich-table {
+  /* `table`, not the `block` the markdown-prose rule was forcing: block layout
+     wraps the rows in an anonymous shrink-to-fit box, so the columns refuse to
+     divide the card's width. The card's own scroll container handles overflow. */
+  display: table;
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--xf-type-caption);
+  font-variant-numeric: tabular-nums;
+}
+.rich-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--xf-surface);
+  text-align: start;
+  font-weight: 600;
+  letter-spacing: -.005em;
+  color: var(--xf-ink-2);
+  padding: .5rem .75rem;
+  border-bottom: 1px solid var(--xf-border);
+  white-space: nowrap;
+}
+.rich-table td {
+  padding: .4375rem .75rem;
+  border-bottom: 1px solid var(--xf-hairline);
+  color: var(--xf-ink);
+  text-align: start;
+  vertical-align: top;
+}
+/*
+ * Columns hug their content; the LAST column absorbs the slack.
+ *
+ * `width: 100%` with automatic layout divides leftover space across every
+ * column proportionally, which on a four-short-column result opens a gap
+ * between every pair of values. `width: 1px` + `nowrap` pins a column to
+ * exactly its content (min-content and max-content are equal under nowrap).
+ * Giving that leftover to the last non-measure column used to shove a trailing
+ * `amount` / `price` to the card's far edge while every other column hugged
+ * the start. The last column takes the slack, so every value stays on the
+ * leading edge and extra room sits after the last cell.
+ */
+.rich-table :is(th, td) {
+  width: 1px;
+  white-space: nowrap;
+}
+.rich-table :is(th, td):last-child {
+  width: auto;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  padding-right: var(--xf-card-gutter);
+}
+/* The outer columns meet the card's one gutter, so the table's first character
+   sits on the same line as the header's title and the code block's first token. */
+.rich-table :is(th, td):first-child { padding-left: var(--xf-card-gutter); }
+.rich-table tbody tr:last-child td { border-bottom: 0; }
+.rich-table tbody tr:nth-child(even) td { background: var(--xf-surface); }
+/* Hover after the stripe so it wins on both row parities: reading across a wide
+   result is where a row loses its line. */
+@media (hover: hover) {
+  .rich-table tbody tr:hover td { background: var(--xf-hover); }
+}
+.assistant-markdown pre code {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  /* Fixed on the ramp, matching `.rich-card__code`: a code block is scanned
+     column-by-column and must not resize with the prose around it. Inline
+     `code` is prose-relative because it sits inside a sentence -- the two are
+     different roles, and making the block em-relative reopened exactly the
+     disagreement `.rich-card__code` records having fixed. */
+  font-size: var(--xf-type-label);
+  line-height: 1.6;
+}
+/* A table the MODEL wrote in markdown keeps its semantic table layout. A
+   labelled wrapper owns horizontal scroll; putting `display: block` on the
+   table itself creates an anonymous table box and makes its columns behave
+   differently from what assistive technology reads. */
+.assistant-markdown__table-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+}
+.assistant-markdown__table-scroll > table {
+  width: 100%;
+  min-width: max-content;
+  border-collapse: collapse;
+  /* Prose-relative, per the em ladder above: a wide table earns a step down
+     from its surrounding prose so more columns fit before it has to scroll. */
+  font-size: .9em;
+}
+.assistant-markdown__table-scroll :is(th, td) {
+  border: 1px solid var(--xf-border);
+  padding: .4em .65em;
+  text-align: left;
+  vertical-align: top;
+}
+.assistant-markdown__table-scroll th {
+  background: var(--xf-surface);
+  font-weight: 600;
+  color: var(--xf-ink);
+}
+.assistant-markdown img {
+  display: block;
+  max-width: 100%;
+  max-height: min(32rem, 70vh);
+  border-radius: var(--xf-r-md);
+  object-fit: contain;
+}
+
+/* highlight.js token palette on xf tokens — one palette, both themes. */
+.assistant-markdown .hljs-comment, .assistant-markdown .hljs-quote { color: var(--xf-ink-3); font-style: italic; }
+.assistant-markdown .hljs-keyword, .assistant-markdown .hljs-selector-tag, .assistant-markdown .hljs-type { color: var(--xf-accent-hover); }
+.assistant-markdown .hljs-string, .assistant-markdown .hljs-regexp, .assistant-markdown .hljs-addition { color: var(--xf-success); }
+.assistant-markdown .hljs-number, .assistant-markdown .hljs-literal { color: var(--xf-warn); }
+.assistant-markdown .hljs-title, .assistant-markdown .hljs-name, .assistant-markdown .hljs-section { color: var(--xf-ink); font-weight: 600; }
+.assistant-markdown .hljs-attr, .assistant-markdown .hljs-attribute, .assistant-markdown .hljs-variable { color: var(--xf-ink-2); }
+.assistant-markdown .hljs-deletion { color: var(--xf-danger); }
+
+/* Stacked notification toasts (Toaster.tsx) — newest at the bottom. */
+.app-toaster {
+  position: fixed;
+  z-index: var(--xf-z-toast);
+  right: max(1rem, env(safe-area-inset-right));
+  bottom: max(1rem, env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: .5rem;
+  max-width: min(24rem, calc(100% - 2rem));
+  pointer-events: none;
+}
+.app-toaster__toast {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  width: max-content;
+  max-width: 100%;
+  padding: .625rem .75rem;
+  border: 1px solid var(--xf-border);
+  border-radius: var(--xf-r-lg);
+  background: var(--xf-card);
+  color: var(--xf-ink-2);
+  box-shadow: var(--xf-elev-2);
+  font-size: var(--xf-type-label);
+  pointer-events: auto;
+  animation: app-toaster-in var(--xf-dur-overlay) var(--xf-ease-soft) both;
+}
+@keyframes app-toaster-in {
+  from { opacity: 0; transform: translateY(.5rem) scale(.98); }
+}
+/* Mirrors `app-toaster-in`: a dismissed toast fades and settles out instead
+ * of vanishing on the frame `dismissToast` fires. `Toaster` keeps the card
+ * mounted with `data-exiting="true"` for exactly this animation's duration
+ * (`EXIT_MS`, kept equal to `--xf-dur-overlay` in the component) before it
+ * actually drops the row.
+ *
+ * The negative top margin takes back the card's height and the stack gap
+ * above it (`--xf-toast-exit-height`, measured by the card), so by the last
+ * frame it holds no space and its removal moves nothing. */
+.app-toaster__toast[data-exiting="true"] {
+  pointer-events: none;
+  animation: app-toaster-out var(--xf-dur-overlay) var(--xf-ease-soft) both;
+}
+@keyframes app-toaster-out {
+  to {
+    opacity: 0;
+    transform: translateY(.25rem) scale(.98);
+    margin-top: calc(-1 * var(--xf-toast-exit-height, 0px) - .5rem);
+  }
+}
+.app-toaster__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 999px;
+  flex: none;
+}
+.app-toaster__text { min-width: 0; flex: 1; overflow-wrap: anywhere; }
+.app-toaster__action { flex: none; }
+.app-toaster__close {
+  flex: none;
+  color: inherit;
+}
+.app-toaster__toast[data-tone="success"] {
+  border-color: color-mix(in srgb, var(--xf-success) 45%, var(--xf-border));
+  background: var(--xf-success-bg);
+  color: var(--xf-ink);
+}
+.app-toaster__toast[data-tone="success"] .app-toaster__icon {
+  background: var(--xf-success);
+  color: var(--xf-card);
+}
+.app-toaster__toast[data-tone="error"] {
+  border-color: color-mix(in srgb, var(--xf-danger) 45%, var(--xf-border));
+  background: var(--xf-danger-bg);
+  color: var(--xf-ink);
+}
+.app-toaster__toast[data-tone="error"] .app-toaster__icon { color: var(--xf-danger); }
+.app-toaster__toast[data-tone="warning"] { background: var(--xf-warn-bg); color: var(--xf-ink); }
+.app-toaster__toast[data-tone="warning"] .app-toaster__icon { color: var(--xf-warn); }
+.app-toaster__toast[data-tone="message"] .app-toaster__icon { color: var(--xf-ink-3); }
+
+@media screen and (max-width: 900px) {
+  /* Both selectors, because a media query adds no specificity: without the
+     second one the closed-state rule outside this query still wins, and a
+     narrow window keeps a rail-width strip of empty track beside the drawer. */
+  .app-shell,
+  .app-shell[data-canvas-open="true"][data-sidebar-open="true"],
+  .app-shell[data-sidebar-open="false"] {
+    --xf-sidebar-track: 0rem;
+    grid-template-columns: minmax(0, 1fr) var(--xf-canvas-track);
+  }
+  .app-shell[data-canvas-open="false"] { grid-template-columns: minmax(0, 1fr); }
+  .app-sidebar {
+    position: fixed;
+    z-index: var(--xf-z-overlay);
+    inset: 0 auto 0 0;
+    width: min(84vw, var(--xf-sidebar-width));
+    border-right-color: var(--xf-border);
+    box-shadow: var(--xf-elev-3);
+    transform: translateX(0);
+    transition: transform var(--xf-dur-slow) var(--xf-ease-panel);
+  }
+  .app-shell[data-sidebar-open="false"] .app-sidebar {
+    pointer-events: none;
+    transform: translateX(-101%);
+  }
+}
+
+@media (pointer: coarse) {
+  :root { --xf-titlebar-height: 3.75rem; }
+  .touch-target {
+    min-width: var(--xf-hit-target-coarse);
+    min-height: var(--xf-hit-target-coarse);
+  }
+
+  /* For a control whose SIZE is its design. A switch track is 36x20 and a
+     breadcrumb crumb is a line of text: growing either to 44 px makes it a
+     different control, so it keeps its painted box and gains the hit area as a
+     centred overlay instead. The finger target is 44 px, the layout does not
+     move, and nothing new is drawn. */
+  .touch-target--halo { position: relative; }
+  .touch-target--halo::after {
+    content: "";
+    position: absolute;
+    inset-inline-start: 50%;
+    inset-block-start: 50%;
+    inline-size: max(100%, var(--xf-hit-target-coarse));
+    block-size: max(100%, var(--xf-hit-target-coarse));
+    transform: translate(-50%, -50%);
+  }
+
+  .settings-control,
+  .settings-segmented-control__segment {
+    min-block-size: var(--xf-hit-target-coarse);
+  }
+
+  .composer textarea {
+    min-height: 2.75rem;
+  }
+}
+
+/* HIG: reduced transparency means frostier, not just "same glass, less blur" —
+   materials go solid and the blur is dropped entirely. */
+@media (prefers-reduced-transparency: reduce) {
+  :root { --xf-elevated: #ffffff; }
+  [data-theme="dark"] { --xf-elevated: #181b21; }
+  .xf-material,
+  .app-titlebar,
+  .dialog-scrim {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+/* Packaged macOS WKWebView cannot mark blurred compositor layers volatile when
+   the app backgrounds, which spams Console and holds GPU memory. Solid
+   materials keep the same tokens without the extra compositing surface. */
+/* macOS: the title bar is an overlay (tauri.conf.json `titleBarStyle`), so the
+   window buttons sit in the app's own top row, VS Code style, and the native
+   "xFalcon" title is hidden. They are placed 18px in and centred in the 52px
+   header row (`trafficLightPosition`). The sidebar leaves that row to them and
+   puts its brand on the row below, as the top of the nav (Kyle, 2026-10-15).
+   Windows and Linux keep their native title bar, so none of this applies. */
+[data-platform="macos"] .app-sidebar__brand {
+  height: calc(var(--xf-titlebar-height) + 2.25rem);
+  align-items: flex-end;
+  padding-bottom: .25rem;
+}
+[data-platform="macos"] .app-sidebar__rail { padding-top: var(--xf-titlebar-height); }
+/* Collapsed, the rail is narrower than the three buttons. Its top strip takes
+   the workspace's ground and the dividing line starts below it, so the buttons
+   sit on one band that is simply the workspace's top row, as in Claude when its
+   sidebar is closed; the title bar's own content moves in to clear them. */
+[data-platform="macos"] .app-sidebar[data-rail="true"] {
+  position: relative;
+  border-inline-end: 0;
+  background: linear-gradient(
+    to bottom,
+    var(--xf-canvas) var(--xf-titlebar-height),
+    var(--xf-sidebar) var(--xf-titlebar-height)
+  );
+}
+[data-platform="macos"] .app-sidebar[data-rail="true"]::after {
+  position: absolute;
+  top: var(--xf-titlebar-height);
+  bottom: 0;
+  inset-inline-end: 0;
+  width: 1px;
+  background: var(--xf-border);
+  content: "";
+  pointer-events: none;
+}
+/* Closed with no rail, the toggle is the first control in the row. The window
+   buttons start 18pt in and run about 54pt across (window_chrome.rs), so the
+   narrow layout moves the toggle past them. Its query is APP_NARROW_QUERY
+   (useAppLayout.ts). The wide value is the default, not a min-width rule, so a
+   window between 900 and 901 px wide, which matches neither query, still gets it. */
+[data-platform="macos"] .app-shell[data-sidebar-open="false"] .app-titlebar { padding-inline-start: 1.75rem; }
+@media screen and (max-width: 900px) {
+  [data-platform="macos"] .app-shell[data-sidebar-open="false"] .app-titlebar { padding-inline-start: 4.75rem; }
+}
+
+/* WKWebView smears backdrop blur, so macOS drops it (below). Without the blur a
+   72% material lets the text behind it through, so a tooltip over a message
+   was unreadable: on macOS a material is the solid floating surface instead,
+   as it is under reduced transparency. */
+[data-platform="macos"] .xf-material { background: var(--xf-floating); }
+
+[data-platform="macos"] .xf-material,
+[data-platform="macos"] .app-titlebar,
+[data-platform="macos"] .dialog-scrim,
+[data-platform="macos"] .chat-jump,
+[data-platform="macos"] .backdrop-blur-xs,
+[data-platform="macos"] .backdrop-blur-sm,
+[data-platform="macos"] .backdrop-blur-md {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+@media (forced-colors: active) {
+  .app-sidebar,
+  .app-titlebar,
+  .composer,
+  .dialog-shell > [role="dialog"],
+  .dialog-shell > [role="alertdialog"] {
+    border-color: CanvasText;
+  }
+
+  .app-mark,
+  .app-account-menu__avatar {
+    color: LinkText;
+    forced-color-adjust: auto;
+  }
+
+  button:focus-visible,
+  a:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible,
+  [tabindex]:focus-visible {
+    outline: 2px solid Highlight;
+  }
+
+  /* A switch states on or off with fill alone, and forced-colors mode replaces
+     every author fill with one system colour -- so on and off become the same
+     swatch and the knob disappears into the track. Handing the state back means
+     opting out of the forcing, which obliges this block to paint every part
+     from the system palette itself. */
+  .xf-switch {
+    forced-color-adjust: none;
+    border: 1px solid ButtonText;
+    background: Canvas;
+  }
+  .xf-switch[aria-checked="true"] { background: Highlight; }
+  .xf-switch > span { background: ButtonText; }
+  .xf-switch[aria-checked="true"] > span { background: HighlightText; }
+  .xf-switch:disabled { border-color: GrayText; background: Canvas; }
+  .xf-switch:disabled > span { background: GrayText; }
+  .xf-switch:focus-visible { outline: 2px solid Highlight; outline-offset: 2px; }
+}
+
+/* Press / lift utilities */
+.press {
+  transition-property: transform, color, background-color, border-color, box-shadow;
+  transition-duration: var(--xf-dur-fast);
+  transition-timing-function: var(--xf-ease-soft);
+}
+.press:active { transform: scale(.98); }
+.hover-lift { transition: transform var(--xf-dur-fast) var(--xf-ease-soft), box-shadow var(--xf-dur-fast) var(--xf-ease-soft); }
+@media (hover:hover){ .hover-lift:hover { transform: translateY(-1px); box-shadow: var(--xf-elev-2); } }
+
+/* Workspace arrival skeleton (spec: workspace-arrival) — ghosts hold the
+   shell's frame until the bootstrap lands; one fade swap on reveal. */
+.workspace-skeleton {
+  display: grid;
+  grid-template-columns: var(--xf-sidebar-width) minmax(0, 1fr);
+  width: 100%;
+  height: 100%;
+  background: var(--xf-canvas);
+}
+.workspace-skeleton__sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: .375rem;
+  padding: 1rem .75rem;
+  border-right: 1px solid var(--xf-hairline);
+  background: var(--xf-surface);
+}
+.workspace-skeleton__brand {
+  display: flex;
+  height: 2.25rem;
+  align-items: center;
+  gap: .625rem;
+  margin-bottom: .375rem;
+  padding-inline: .375rem;
+}
+.workspace-skeleton__mark { width: 1.75rem; height: 1.75rem; flex: none; }
+.workspace-skeleton__wordmark { width: 6.75rem; height: .875rem; }
+.workspace-skeleton__destinations {
+  display: flex;
+  flex-direction: column;
+  gap: .125rem;
+  margin-bottom: .125rem;
+  padding: .25rem;
+  border: 1px solid var(--xf-hairline);
+  border-radius: var(--xf-r-lg);
+  background: var(--xf-surface-alt);
+}
+.workspace-skeleton__destination {
+  display: flex;
+  height: var(--xf-nav-row-h);
+  align-items: center;
+  gap: .625rem;
+  padding-inline: .5rem;
+}
+.workspace-skeleton__icon { width: .875rem; height: .875rem; flex: none; }
+.workspace-skeleton__destination-label { width: 5.25rem; height: .625rem; }
+.workspace-skeleton__search { height: 2.25rem; margin-bottom: .25rem; }
+.workspace-skeleton__row { height: 2rem; margin-inline: .375rem; }
+.workspace-skeleton__row--action { width: 42%; }
+.workspace-skeleton__section-label { width: 3.75rem; height: .5rem; margin: .625rem .375rem .25rem; }
+.workspace-skeleton__row--utility { width: 48%; }
+.workspace-skeleton__account { height: 2.5rem; margin-top: .25rem; }
+.workspace-skeleton__spacer { flex: 1 1 auto; }
+.workspace-skeleton__main {
+  display: grid;
+  grid-template-rows: var(--xf-titlebar-height) minmax(0, 1fr);
+  min-width: 0;
+  min-height: 0;
+}
+.workspace-skeleton__titlebar {
+  display: grid;
+  grid-template-columns: 2.25rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: .625rem;
+  padding: .5rem .75rem;
+  border-bottom: 1px solid var(--xf-hairline);
+  background: var(--xf-elevated);
+}
+.workspace-skeleton__titlebar-button { width: 2.25rem; height: 2.25rem; }
+.workspace-skeleton__title { width: 8.75rem; height: .75rem; }
+.workspace-skeleton__titlebar-action { width: 5.25rem; height: 2rem; }
+.workspace-skeleton__stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  padding: 2rem;
+  overflow: hidden;
+}
+.workspace-skeleton__hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  width: min(100%, 42rem);
+  /* The real empty state has a heading's intrinsic box. Its skeleton has a
+     plain loading label, so compensate at the group level to keep the
+     composer and starter grid from jumping on reveal. */
+  transform: translateY(1.5rem);
+}
+.workspace-skeleton__hero-mark { width: 3rem; height: 3rem; border-radius: 50%; }
+.workspace-skeleton__label {
+  color: var(--xf-ink-2);
+  font-weight: 600;
+  letter-spacing: -.025em;
+  text-align: center;
+}
+.workspace-skeleton__welcome { display: contents; }
+.workspace-skeleton__composer { width: 100%; height: 5.9375rem; margin-top: .25rem; border-radius: 1.4rem; }
+.workspace-skeleton__suggestions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .625rem;
+  width: 100%;
+}
+.workspace-skeleton__suggestion { height: 4.5rem; border-radius: var(--xf-r-xl); }
+
+/* Conversation cache-miss skeleton. Navigation chrome stays real so the
+   selected destination responds at click time, not network time. */
+.conversation-skeleton {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  min-height: 0;
+  height: 100%;
+  padding: clamp(1.5rem, 4vw, 3.5rem) clamp(1rem, 7vw, 6rem) 1.5rem;
+}
+.conversation-skeleton__messages {
+  width: min(100%, 58rem);
+  margin-inline: auto;
+  padding-top: clamp(1rem, 7vh, 4rem);
+}
+.conversation-skeleton__turn {
+  width: min(76%, 38rem);
+  margin-bottom: 2rem;
+}
+.conversation-skeleton__turn--user {
+  width: min(42%, 22rem);
+  margin-left: auto;
+}
+.conversation-skeleton__line {
+  width: 72%;
+  height: .75rem;
+  margin-bottom: .65rem;
+}
+.conversation-skeleton__line--wide { width: 100%; }
+.conversation-skeleton__line--short { width: 46%; }
+.conversation-skeleton__line--user {
+  width: 100%;
+  height: 2.25rem;
+  border-radius: var(--xf-r-lg);
+}
+.conversation-skeleton__composer {
+  width: min(100%, 48rem);
+  height: 5.875rem;
+  margin-inline: auto;
+  border-radius: 1.4rem;
+}
+@media (max-width: 900px) {
+  .workspace-skeleton { grid-template-columns: minmax(0, 1fr); }
+  .workspace-skeleton__sidebar { display: none; }
+  .workspace-skeleton__stage { padding-inline: 1rem; }
+  .workspace-skeleton__hero { transform: translateY(1.4375rem); }
+}
+@media (max-width: 639px) {
+  .workspace-skeleton__suggestions { grid-template-columns: minmax(0, 1fr); }
+}
+/* Entrance animations (transform/opacity only) */
+@keyframes xf-fade { from{opacity:0} to{opacity:1} }
+@keyframes xf-view { from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:translateY(0)} }
+@keyframes xf-pulse { from{opacity:1} to{opacity:.35} }
+@keyframes xf-shimmer {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--xf-surface-alt) 0%,
+    var(--xf-hover) 45%,
+    var(--xf-surface-alt) 90%
+  );
+  background-size: 200% 100%;
+  animation: xf-shimmer 1.35s var(--xf-ease-soft) infinite;
+}
+
+/* Range slider — token-backed thumb/track (WebKit + Firefox). */
+.xf-slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 1rem;
+  height: 1rem;
+  border-radius: var(--xf-r-pill);
+  border: 1px solid var(--xf-border-strong);
+  background: var(--xf-card);
+  box-shadow: var(--xf-elev-1);
+  transition: transform var(--xf-dur-fast) var(--xf-ease-soft);
+}
+.xf-slider:active::-webkit-slider-thumb { transform: scale(.94); }
+.xf-slider::-moz-range-thumb {
+  width: 1rem;
+  height: 1rem;
+  border-radius: var(--xf-r-pill);
+  border: 1px solid var(--xf-border-strong);
+  background: var(--xf-card);
+  box-shadow: var(--xf-elev-1);
+}
+.xf-progress-indeterminate {
+  animation: xf-progress-slide 1.1s var(--xf-ease-soft) infinite alternate;
+}
+@keyframes xf-progress-slide {
+  from { transform: translateX(-120%); }
+  to { transform: translateX(320%); }
+}
+/* One entrance per NEW message row (spec: chat-motion-system). The list
+   assigns this class only to ids appended after mount — bulk loads,
+   virtualization re-mounts, and the stream→durable settle never replay it. */
+@keyframes xf-message-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+.message-enter { animation: xf-message-in var(--xf-dur-slow) var(--xf-ease-soft) both; }
+/* One-shot confirmation pop (copy feedback, duration badges). */
+@keyframes xf-badge-pop {
+  from { opacity: 0; transform: scale(.85); }
+  to { opacity: 1; transform: scale(1); }
+}
+.badge-pop { animation: xf-badge-pop var(--xf-dur-fast) var(--xf-ease-spring) both; }
+.animate-fade { animation: xf-fade var(--xf-dur-base) var(--xf-ease-soft) both; }
+/* ── Floating surfaces: one entrance and one exit ─────────────────────────
+   Menus, tooltips, palettes, and dialogs. `pop` grows out of the surface's
+   `transform-origin` -- the pointer or trigger edge for a menu, the centre
+   for a dialog -- and `fade` is for what does not grow: the scrim and the
+   tooltip, which drifts a few pixels off its anchor.
+
+   The exit plays on a copy (`ui/useExitAnimation.ts`) marked
+   `data-xf-leaving`. Its keyframes name only the end, so a surface closed
+   mid-entrance leaves from where it got to. Everything nested in the copy
+   holds still: a spinner or an entrance inside a leaving dialog must not
+   replay in it. */
+@keyframes xf-overlay-pop-in { from { opacity: 0; transform: scale(.96); } }
+@keyframes xf-overlay-pop-out { to { opacity: 0; transform: scale(.97); } }
+@keyframes xf-overlay-fade-in {
+  from { opacity: 0; transform: translate(var(--xf-overlay-drift-x, 0), var(--xf-overlay-drift-y, 0)); }
+}
+@keyframes xf-overlay-fade-out {
+  to { opacity: 0; transform: translate(var(--xf-overlay-drift-x, 0), var(--xf-overlay-drift-y, 0)); }
+}
+.xf-overlay-pop { animation: xf-overlay-pop-in var(--xf-dur-overlay) var(--xf-ease-soft) both; }
+.xf-overlay-fade { animation: xf-overlay-fade-in var(--xf-dur-overlay) var(--xf-ease-soft) both; }
+[data-xf-leaving].xf-overlay-pop,
+[data-xf-leaving] .xf-overlay-pop {
+  animation: xf-overlay-pop-out var(--xf-dur-overlay) var(--xf-ease-soft) both;
+}
+[data-xf-leaving].xf-overlay-fade,
+[data-xf-leaving] .xf-overlay-fade {
+  animation: xf-overlay-fade-out var(--xf-dur-overlay) var(--xf-ease-soft) both;
+}
+[data-xf-leaving] :not(.xf-overlay-pop, .xf-overlay-fade) { animation: none; }
+[data-xf-leaving],
+[data-xf-leaving] * { pointer-events: none !important; }
+/* A tooltip drifts in from its anchor and back toward it on the way out. */
+[role="tooltip"][data-side="top"] { --xf-overlay-drift-y: 3px; }
+[role="tooltip"][data-side="bottom"] { --xf-overlay-drift-y: -3px; }
+[role="tooltip"][data-side="left"] { --xf-overlay-drift-x: 3px; }
+[role="tooltip"][data-side="right"] { --xf-overlay-drift-x: -3px; }
+/* View-switch entrance (chat/datasets/settings roots, keyed on the active tab). */
+.animate-view { animation: xf-view var(--xf-dur-base) var(--xf-ease-soft) both; }
+/* Gentle status pulse (live dots). */
+.animate-pulse-soft { animation: xf-pulse 1.6s var(--xf-ease-soft) infinite alternate; }
+/* Thinking indicator: three dots breathing in sequence. */
+.thinking-dots > span { animation: xf-pulse 1.2s var(--xf-ease-soft) infinite alternate; }
+.thinking-dots > span:nth-child(2) { animation-delay: 0.2s; }
+.thinking-dots > span:nth-child(3) { animation-delay: 0.4s; }
+
+/* Theme switch crossfade (`chooseAppearance` in `app/appearance.ts` starts
+ * the transition; only these two pseudo-elements are ours to style — the
+ * browser's default view-transition duration/easing do not come from this
+ * app's token scale, so they are restated here to match everything else. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: var(--xf-dur-slow);
+  animation-timing-function: var(--xf-ease-soft);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation: none !important;
+    scroll-behavior: auto !important;
+    transition-duration: .01ms !important;
+  }
+  .skeleton-shimmer { background: var(--xf-surface-alt); }
+  .workspace-skeleton__destinations .skeleton-shimmer { background: var(--xf-hover); }
+}
+
+/* ── The printed document (spec: lean-report-export) ───────────────────────
+   A separate tree mounted on <body> beside #root, never the transcript with
+   parts hidden: `MessageList` is virtualized, so the turns a reader selected
+   are mostly absent from the DOM and printing the live surface would quietly
+   produce whatever happened to be scrolled into view.
+
+   Inert on screen. `display: none` and not `visibility`/clipping, so it costs
+   no layout while the app is being used, and it carries `aria-hidden` in the
+   component for the same reason -- a hidden second copy of the transcript is
+   not something a screen reader should walk.
+
+   Page numbers are the print dialog's own header and footer. Chromium (and so
+   WebView2) does not implement generated content in `@page` margin boxes, so a
+   `counter(page)` here would render nothing; asserting it in CSS would only
+   look like the feature existed. */
+.xf-print-document { display: none; }
+
+@page { margin: 18mm 16mm; }
+
+@media print {
+  /* The app locks the viewport to one screen; a document has to flow. */
+  html, body { height: auto; overflow: visible; background: #fff; }
+  /* Everything except the document, which includes the export dialog that
+     started the print and the toaster that will confirm it. Portalled
+     overlays are body children too, so this one rule covers them all. */
+  body > *:not(.xf-print-document) { display: none !important; }
+
+  .xf-print-document {
+    display: block;
+    /* Ink on paper, stated in absolute values: the theme tokens follow the
+       reader's dark-mode choice, and a dark-mode export is a page of toner. */
+    color: #111;
+    background: #fff;
+    font-family: var(--xf-font-sans);
+    font-size: 10.5pt;
+    line-height: 1.5;
+  }
+
+  /* Printed links and task boxes are static text. Their destination and state
+     remain explicit without carrying an interactive control onto paper. */
+  .xf-print-url { color: #555; font-size: 8.5pt; overflow-wrap: anywhere; }
+  .xf-print-task-state { display: inline-block; width: 1.2em; font-family: var(--xf-font-sans); }
+  .xf-print-empty { color: #555; font-style: italic; }
+
+  .xf-print-header {
+    border-bottom: 1pt solid #111;
+    padding-bottom: 6pt;
+    margin-bottom: 14pt;
+  }
+  .xf-print-header h1 { font-size: 17pt; line-height: 1.2; margin: 0; letter-spacing: -0.01em; }
+  .xf-print-header p { font-size: 9pt; color: #555; margin: 4pt 0 0; }
+
+  /* Turns are the document's structure, so they carry its rhythm and never
+     straddle a page break at the heading. */
+  .xf-print-section { margin: 0 0 14pt; break-inside: auto; }
+  .xf-print-document h2 {
+    font-size: 8.5pt;
+    font-weight: 650;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #555;
+    margin: 0 0 4pt;
+    break-after: avoid;
+  }
+  .xf-print-document h3 { font-size: 10pt; margin: 10pt 0 4pt; break-after: avoid; }
+  .xf-print-document p, .xf-print-document ul, .xf-print-document ol { margin: 0 0 7pt; }
+  .xf-print-document li { margin: 0 0 2pt; }
+
+  /* Model prose brings its own headings; they must not outrank the frame's. */
+  .xf-print-section :is(h1, h4, h5, h6) { font-size: 11pt; margin: 10pt 0 4pt; break-after: avoid; }
+
+  .xf-print-document blockquote {
+    margin: 0 0 7pt;
+    padding-left: 8pt;
+    border-left: 2pt solid #ccc;
+    color: #444;
+  }
+  .xf-print-reasoning { white-space: pre-wrap; font-size: 9.5pt; }
+
+  /* A wrapped fence is readable; a clipped one has lost its right-hand side,
+     and on paper there is no scrolling it back. `break-inside: avoid` on a
+     fence taller than one page is a Chromium pagination stall that can leave
+     the webview blocked inside print layout with no way out. */
+  .xf-print-document pre {
+    font-family: var(--xf-font-mono);
+    font-size: 8.5pt;
+    line-height: 1.4;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    background: #f6f6f6;
+    border: 0.5pt solid #ddd;
+    border-radius: 2pt;
+    padding: 5pt 6pt;
+    margin: 0 0 7pt;
+    break-inside: auto;
+  }
+  .xf-print-document :not(pre) > code {
+    font-family: var(--xf-font-mono);
+    font-size: 9pt;
+    background: #f2f2f2;
+    padding: 0.5pt 2pt;
+    border-radius: 2pt;
+  }
+  /* Highlight spans survive the pipeline; on paper they would be grey noise. */
+  .xf-print-document pre code, .xf-print-document pre code span { color: #111 !important; }
+
+  .xf-print-document table {
+    width: 100%;
+    max-width: 100%;
+    border-collapse: collapse;
+    font-size: 9pt;
+    margin: 0 0 7pt;
+    break-inside: auto;
+  }
+  .xf-print-document thead { display: table-header-group; }
+  .xf-print-document tr { break-inside: auto; }
+  .xf-print-document :is(th, td) {
+    border: 0.5pt solid #ccc;
+    padding: 3pt 5pt;
+    text-align: left;
+    vertical-align: top;
+    overflow-wrap: anywhere;
+  }
+  .xf-print-document th { background: #f2f2f2; font-weight: 650; }
+
+  .xf-print-tools { margin-top: 8pt; }
+  .xf-print-tool { margin: 0 0 6pt; break-inside: avoid; }
+  .xf-print-document img { max-width: 100%; }
+}
+
+/* A single reading lane keeps wide schemas' names and types paired. */
+.schema-columns { border: 1px solid var(--xf-border); border-radius: var(--xf-r-md); overflow: hidden; }
+.schema-columns__heading, .schema-columns__row {
+  display: grid;
+  grid-template-columns: 1.5rem minmax(0, 1fr) minmax(5rem, 30%);
+  gap: .75rem;
+  align-items: center;
+  padding: .625rem .75rem;
+}
+.schema-columns__heading { background: var(--xf-surface); color: var(--xf-ink-2); font-size: var(--xf-type-caption); font-weight: 600; }
+.schema-columns__list { height: clamp(8rem, calc(100dvh - 28rem), 22rem); overflow-y: auto; scrollbar-gutter: stable; }
+.schema-columns__row { border-top: 1px solid var(--xf-border); }
+.schema-columns__row:nth-child(even) { background: var(--xf-surface); }
+.schema-type { justify-self: start; max-width: 100%; line-height: 1.4; }
+
+/* Dialogs fit their content; long bodies scroll below the viewport limit. */
+.modal-panel, .alert-panel { max-height: 85dvh; overflow: hidden; }
+.modal-panel:has(.dataset-upload-body) { max-width: 69rem; }
+.composer-palette__results { height: min(15rem, 35dvh); scrollbar-gutter: stable; }
+.table-heading { background: var(--xf-table-header); }
+.dialog-shell > .xf-material, [role="menu"].xf-material { background: var(--xf-floating); }
+
+.reading-size-preview[data-reading-size="small"] { font-size: .75rem; }
+.reading-size-preview[data-reading-size="medium"] { font-size: .875rem; }
+.reading-size-preview[data-reading-size="large"] { font-size: 1rem; }
+
+/* Resizing changes the pane, not the window: adapt to the available chat width. */
+@container chat-workspace (max-width: 30rem) {
+  .app-titlebar__actions .app-command-button > span,
+  .app-titlebar__actions .app-command-button > kbd { display: none; }
+  .app-titlebar__identity strong { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .empty-conversation ul { grid-template-columns: minmax(0, 1fr); }
+  .empty-conversation h1 { font-size: var(--xf-type-title); }
+}
+@container chat-workspace (max-width: 22rem) {
+  .app-titlebar { gap: .25rem; padding-inline: .5rem; grid-template-columns: 2rem minmax(0, 1fr) auto; }
+  .app-titlebar__actions { gap: .125rem; }
+  .app-command-button { min-width: 2rem; padding-inline: .25rem; }
+  .empty-conversation { padding-block: 1rem; }
+}
+
+/* Adjacent panes carry their own 1px edge, separated by the layout gutter.
+   Floating surfaces repeat the pair without changing measured menu/dialog sizes. */
+.dialog-shell > .xf-material,
+[role="menu"].xf-material,
+#composer-palette-list {
+  border: 1px solid var(--xf-border);
+  outline: 1px solid var(--xf-border);
+  outline-offset: 2px;
+}
+.app-titlebar,
+.canvas-panel__header {
+  border-bottom: 1px solid var(--xf-border);
+  margin-bottom: var(--xf-layout-gap);
+  box-shadow: none;
+}
+.canvas-divider__grip {
+  position: absolute;
+  z-index: 1;
+  left: 0;
+  top: 50%;
+  display: flex;
+  width: 11px;
+  height: 30px;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 3px;
+  border: 1px solid var(--xf-border);
+  border-radius: var(--xf-r-pill);
+  background: var(--xf-card);
+  color: var(--xf-ink-3);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+.canvas-divider__grip > span { width: 2px; height: 2px; border-radius: 50%; background: currentColor; }
+.canvas-divider:hover .canvas-divider__grip,
+.canvas-divider:focus-visible .canvas-divider__grip,
+.app-shell[data-canvas-resizing="true"] .canvas-divider__grip {
+  color: var(--xf-accent);
+  border-color: var(--xf-accent);
+}
+@media (forced-colors: active) {
+  .canvas-divider__grip { border-color: ButtonText; color: ButtonText; }
+  .canvas-divider__grip > span { forced-color-adjust: none; background: ButtonText; }
+}
+
+/* Each side of the junction owns one edge; no offset shadow duplicates it. */
+.app-workspace { border: 0; overflow: visible; background: transparent; }
+.app-titlebar {
+  margin: 0 0 var(--xf-layout-gap);
+  border: 1px solid var(--xf-border);
+  border-radius: var(--xf-panel-radius);
+}
+.app-workspace__body {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  flex-direction: column;
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid var(--xf-border);
+  border-radius: var(--xf-panel-radius);
+  background: var(--xf-canvas);
+}
+.canvas-slot { border: 0; background: transparent; }
+.canvas-panel { overflow: visible; border: 0; }
+.canvas-panel__header {
+  margin: 0 0 var(--xf-layout-gap);
+  border: 1px solid var(--xf-border);
+  border-radius: var(--xf-panel-radius);
+}
+#canvas-artifact-panel {
+  margin: 0;
+  border: 1px solid var(--xf-border);
+  border-radius: var(--xf-panel-radius);
+}
+
+/* Two surfaces (Kyle, 2026-10-15; the Claude desktop layout): the nav and the
+   workspace, divided by one line. The title bar is the workspace's own top row
+   on the workspace's ground, not a bordered pane of its own, and the panes no
+   longer float apart on a gutter. Declared last so it settles the pane rules
+   above. */
+.app-shell { column-gap: 0; }
+.app-sidebar {
+  border: 0;
+  border-inline-end: 1px solid var(--xf-border);
+  border-radius: 0;
+}
+.app-titlebar {
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  background: var(--xf-canvas);
+  backdrop-filter: none;
+}
+.app-workspace__body {
+  border: 0;
+  border-radius: 0;
+}
+#canvas-artifact-panel {
+  border: 0;
+  border-inline-start: 1px solid var(--xf-border);
+  border-radius: 0;
+}
+.canvas-panel__header {
+  margin: 0;
+  border: 0;
+  border-bottom: 1px solid var(--xf-hairline);
+  border-radius: 0;
+}

@@ -1,0 +1,90 @@
+{
+  "name": "xfalcon-desktop",
+  "version": "0.5.51",
+  "private": true,
+  "type": "module",
+  "description": "xFalcon desktop app — Tauri v2, Model B local-first.",
+  "scripts": {
+    "dev": "node scripts/run-vite-dev.mjs",
+    "build": "npm run typecheck && vite build && npm run check:styles && npm run check:tooltips",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "eslint . --max-warnings=0",
+    "preview": "vite preview",
+    "tauri": "tauri",
+    "dev:app": "node scripts/run-tauri-dev.mjs",
+    "test": "npm run check:fonts && npm run test:release && node --test scripts/run-tauri-dev.test.mjs && vitest run",
+    "test:release": "node --test scripts/prepare-desktop-release.test.mjs scripts/publish-desktop-staging.test.mjs scripts/verify-tenant-config.test.mjs scripts/cleanup-desktop-releases.test.mjs",
+    "gate": "bash scripts/gate.sh",
+    "test:chat": "vitest run src/features/chat benchmarks/chat",
+    "check:fonts": "node scripts/check-font-inventory.mjs",
+    "check:styles": "node scripts/check-style-contract.mjs",
+    "check:tooltips": "node scripts/check-tooltip-coverage.mjs",
+    "check:matrix": "node scripts/check-ux-matrix.mjs",
+    "test:visual": "playwright test",
+    "test:e2e:chat": "playwright test -c tests/e2e/playwright.config.ts",
+    "test:watch": "vitest",
+    "typecheck": "tsc -b --pretty false && tsc -p tsconfig.bench.json --pretty false",
+    "perf": "node scripts/perf/run.mjs",
+    "perf:compare": "node scripts/perf/compare.mjs"
+  },
+  "dependencies": {
+    "@radix-ui/react-collapsible": "^1.1.20",
+    "@tanstack/react-virtual": "^3.14.9",
+    "@tauri-apps/api": "^2.0.0",
+    "@tauri-apps/plugin-dialog": "^2.0.0",
+    "clsx": "^2.1.1",
+    "highlight.js": "^11.11.1",
+    "lowlight": "^3.3.0",
+    "lucide-react": "^0.470.0",
+    "mdast-util-from-markdown": "2.0.3",
+    "mdast-util-gfm": "3.1.0",
+    "micromark-extension-gfm": "3.0.0",
+    "pdfjs-dist": "6.4.299",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-markdown": "^10.1.0",
+    "rehype-highlight": "^7.0.2",
+    "rehype-sanitize": "^6.0.0",
+    "remark-gfm": "^4.0.1",
+    "tailwind-merge": "^3.6.0"
+  },
+  "optionalDependencies": {
+    "@rollup/rollup-win32-x64-msvc": "^4.62.4"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@playwright/test": "1.62.0",
+    "@tailwindcss/vite": "^4.0.0",
+    "@tauri-apps/cli": "^2.0.0",
+    "@testing-library/jest-dom": "7.0.0",
+    "@testing-library/react": "16.3.2",
+    "@testing-library/user-event": "14.6.1",
+    "@types/node": "24.10.1",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^4.3.0",
+    "eslint": "10.8.0",
+    "eslint-plugin-react-hooks": "7.1.1",
+    "eslint-plugin-react-refresh": "0.5.3",
+    "globals": "17.8.0",
+    "jsdom": "29.1.1",
+    "prettier": "3.9.6",
+    "tailwindcss": "^4.0.0",
+    "typescript": "^5.0.0",
+    "typescript-eslint": "8.65.0",
+    "vite": "^6.4.5",
+    "vitest": "^4.1.12"
+  },
+  "overrides": {
+    "eslint": {
+      "minimatch": "11.0.4"
+    },
+    "@eslint/config-array": {
+      "minimatch": "11.0.4"
+    },
+    "@typescript-eslint/typescript-estree": {
+      "minimatch": "11.0.4"
+    }
+  }
+}

@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-chat-conversation-preview"
+description = "Enables the chat_conversation_preview command without any pre-configured scope."
+commands.allow = ["chat_conversation_preview"]
+
+[[permission]]
+identifier = "deny-chat-conversation-preview"
+description = "Denies the chat_conversation_preview command without any pre-configured scope."
+commands.deny = ["chat_conversation_preview"]

@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-chat-mcp-selection-get"
+description = "Enables the chat_mcp_selection_get command without any pre-configured scope."
+commands.allow = ["chat_mcp_selection_get"]
+
+[[permission]]
+identifier = "deny-chat-mcp-selection-get"
+description = "Denies the chat_mcp_selection_get command without any pre-configured scope."
+commands.deny = ["chat_mcp_selection_get"]

@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-chat-message-edit"
+description = "Enables the chat_message_edit command without any pre-configured scope."
+commands.allow = ["chat_message_edit"]
+
+[[permission]]
+identifier = "deny-chat-message-edit"
+description = "Denies the chat_message_edit command without any pre-configured scope."
+commands.deny = ["chat_message_edit"]

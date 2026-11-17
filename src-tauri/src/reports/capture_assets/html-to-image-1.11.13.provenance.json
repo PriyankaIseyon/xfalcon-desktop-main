@@ -1,0 +1,15 @@
+{
+  "name": "html-to-image",
+  "version": "1.11.13",
+  "source": "https://cdn.jsdelivr.net/npm/html-to-image@1.11.13/dist/html-to-image.js",
+  "sha256": "5cce14e1d004075686bda632a1554c375718e866b1723d86a4f984ad82f213d8",
+  "license": "html-to-image-1.11.13.LICENSE",
+  "upstream_sha256": "a90b42909d80964269ef6d5f3d1e4a5a7e2a4c263a5d2a76a9e7151901343262",
+  "patches": [
+    {
+      "reason": "Bound the loaded-image decode and paint wait when a host leaves image decoding or offscreen animation frames pending.",
+      "before": "r.decode().then((function(){requestAnimationFrame((function(){return e(r)}))}))",
+      "after": "var a=setTimeout((function(){return e(r)}),1000);r.decode().then((function(){requestAnimationFrame((function(){clearTimeout(a);return e(r)}))}),(function(){clearTimeout(a);return e(r)}))"
+    }
+  ]
+}

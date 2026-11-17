@@ -1,0 +1,47 @@
+# dependencies
+/node_modules
+
+# frontend build output
+/dist
+
+# tauri / rust build output
+/target/
+/src-tauri/target/
+/src-tauri/gen/
+
+# env / secrets — never commit
+.env
+.env.*
+!.env.example
+*.key
+*.key.pub
+
+# os / editor
+.DS_Store
+Thumbs.db
+*.tsbuildinfo
+
+# local agent / editor tooling (not part of this repo)
+LOCAL-SETUP.md
+.agent/
+.claude/
+.codex/
+.cursor/
+.mcp.json
+.next/
+.vercel/
+.codegraph/
+next-env.d.ts
+.github/prompts/
+.github/skills/
+.github/copilot-instructions.md
+
+# isolated worktrees for subagent-driven plan execution
+.worktrees/
+/test-results/
+
+# Font source downloads: multi-megabyte archives that belong in asset storage,
+# not in git history where every clone pays for them forever.
+*-original-download.zip
+tauri-build.log
+scripts/perf/results/

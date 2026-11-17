@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-diagnostics-log-renderer-error"
+description = "Enables the diagnostics_log_renderer_error command without any pre-configured scope."
+commands.allow = ["diagnostics_log_renderer_error"]
+
+[[permission]]
+identifier = "deny-diagnostics-log-renderer-error"
+description = "Denies the diagnostics_log_renderer_error command without any pre-configured scope."
+commands.deny = ["diagnostics_log_renderer_error"]

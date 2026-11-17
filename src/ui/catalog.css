@@ -1,0 +1,10 @@
+/* Shared banner treatment for workspace libraries. */
+.catalog-banner {
+  position: relative;
+  overflow: hidden;
+  border: 0;
+  border-radius: var(--xf-r-lg);
+  background:
+    radial-gradient(ellipse at 100% 0%, color-mix(in srgb, var(--xf-accent) 20%, transparent), transparent 75%),
+    linear-gradient(110deg, var(--xf-card), color-mix(in srgb, var(--xf-accent) 5%, var(--xf-card)));
+}

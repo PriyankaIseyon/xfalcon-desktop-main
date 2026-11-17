@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-chat-message-regenerate"
+description = "Enables the chat_message_regenerate command without any pre-configured scope."
+commands.allow = ["chat_message_regenerate"]
+
+[[permission]]
+identifier = "deny-chat-message-regenerate"
+description = "Denies the chat_message_regenerate command without any pre-configured scope."
+commands.deny = ["chat_message_regenerate"]

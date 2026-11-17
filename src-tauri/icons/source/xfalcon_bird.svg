@@ -1,0 +1,8 @@
+<!-- xFalcon falcon mark. True vector: 47 straight segments, no curves.
+     Traced from no raster - the geometry comes from the inline SVG in
+     xfalcon/marketing/trifold/xFalcon-Trifold-Flyer.html, uniformly scaled
+     and cropped to the mark bounding box. viewBox is a tight bbox, so add
+     your own padding before applying a stroke, glow or drop shadow. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="729" viewBox="0 0 1000 729" fill-rule="evenodd">
+  <path fill="currentColor" d="M558.79,368.32L486.85,462.33L540.18,517.36L618.91,414.03L825.55,346.31L762.04,469.94L693.43,488.55L717.13,441.14L651.92,461.45L579.99,557.98L742.54,729L664.62,729L392.84,446.23L427.55,402.22L448.74,421.64L544.39,294.68L913.59,172.75L853.47,289.59L781.54,311.60L803.55,269.28L579.99,341.21ZM464.84,276.88L286.19,508.05L145.57,360.71L36.41,360.71L0.00,395.42L0.00,306.50L156.65,173.56L411.45,173.56L367.43,231.17L174.37,231.17L89.73,303.99L170.97,305.69L253.18,392.91L283.60,420.83L470.75,176.07L1000.00,0.00L942.39,114.33L869.57,138.04L889.07,95.64L537.67,211.67L505.47,222.67ZM349.70,502.95L356.43,497.86L579.17,729L502.07,729L320.90,541.88Z"/>
+</svg>

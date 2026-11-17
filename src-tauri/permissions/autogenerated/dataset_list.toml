@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-dataset-list"
+description = "Enables the dataset_list command without any pre-configured scope."
+commands.allow = ["dataset_list"]
+
+[[permission]]
+identifier = "deny-dataset-list"
+description = "Denies the dataset_list command without any pre-configured scope."
+commands.deny = ["dataset_list"]

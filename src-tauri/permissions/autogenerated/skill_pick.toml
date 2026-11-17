@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-skill-pick"
+description = "Enables the skill_pick command without any pre-configured scope."
+commands.allow = ["skill_pick"]
+
+[[permission]]
+identifier = "deny-skill-pick"
+description = "Denies the skill_pick command without any pre-configured scope."
+commands.deny = ["skill_pick"]

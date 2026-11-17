@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-chatgpt-plan-welcome-ack"
+description = "Enables the chatgpt_plan_welcome_ack command without any pre-configured scope."
+commands.allow = ["chatgpt_plan_welcome_ack"]
+
+[[permission]]
+identifier = "deny-chatgpt-plan-welcome-ack"
+description = "Denies the chatgpt_plan_welcome_ack command without any pre-configured scope."
+commands.deny = ["chatgpt_plan_welcome_ack"]

@@ -1,0 +1,167 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "xFalcon desktop staging delivery; existing private S3 bucket",
+  "Resources": {
+    "OriginAccess": {
+      "Type": "AWS::CloudFront::OriginAccessControl",
+      "Properties": {
+        "OriginAccessControlConfig": {
+          "Name": "xfalcon-desktop-artifacts-staging",
+          "Description": "Private desktop release origin",
+          "OriginAccessControlOriginType": "s3",
+          "SigningBehavior": "always",
+          "SigningProtocol": "sigv4"
+        }
+      }
+    },
+    "Distribution": {
+      "Type": "AWS::CloudFront::Distribution",
+      "Properties": {
+        "DistributionConfig": {
+          "Comment": "xFalcon Desktop staging updates",
+          "Enabled": {
+            "Fn::If": ["EnableDelivery", true, false]
+          },
+          "HttpVersion": "http2and3",
+          "IPV6Enabled": true,
+          "PriceClass": "PriceClass_100",
+          "Origins": [
+            {
+              "Id": "artifacts",
+              "DomainName": "xfalcon-desktop-artifacts-staging.s3.us-east-1.amazonaws.com",
+              "OriginAccessControlId": {
+                "Fn::GetAtt": ["OriginAccess", "Id"]
+              },
+              "S3OriginConfig": {
+                "OriginAccessIdentity": ""
+              }
+            }
+          ],
+          "DefaultCacheBehavior": {
+            "TargetOriginId": "artifacts",
+            "ViewerProtocolPolicy": "https-only",
+            "AllowedMethods": ["GET", "HEAD"],
+            "CachedMethods": ["GET", "HEAD"],
+            "Compress": true,
+            "MinTTL": 0,
+            "DefaultTTL": 60,
+            "MaxTTL": 31536000,
+            "ForwardedValues": {
+              "QueryString": false,
+              "Cookies": {
+                "Forward": "none"
+              }
+            }
+          },
+          "CustomErrorResponses": [
+            {
+              "ErrorCode": 403,
+              "ErrorCachingMinTTL": 0
+            },
+            {
+              "ErrorCode": 404,
+              "ErrorCachingMinTTL": 0
+            }
+          ],
+          "ViewerCertificate": {
+            "CloudFrontDefaultCertificate": true
+          }
+        }
+      }
+    },
+    "PublisherRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "RoleName": "xfalcon-desktop-artifacts-staging-publisher",
+        "MaxSessionDuration": 3600,
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Federated": "arn:aws:iam::572186105468:oidc-provider/token.actions.githubusercontent.com"
+              },
+              "Action": "sts:AssumeRoleWithWebIdentity",
+              "Condition": {
+                "StringEquals": {
+                  "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
+                  "token.actions.githubusercontent.com:sub": "repo:iSeyon-Analytics/xfalcon-desktop:environment:desktop-staging"
+                }
+              }
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "StagingArtifacts",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": ["s3:GetBucketLocation"],
+                  "Resource": "arn:aws:s3:::xfalcon-desktop-artifacts-staging"
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": ["s3:ListBucket"],
+                  "Resource": "arn:aws:s3:::xfalcon-desktop-artifacts-staging",
+                  "Condition": {
+                    "StringLike": {
+                      "s3:prefix": ["desktop/candidates/*", "desktop/releases/*", "desktop/channels/staging/*"]
+                    }
+                  }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": ["s3:GetObject", "s3:PutObject"],
+                  "Resource": [
+                    "arn:aws:s3:::xfalcon-desktop-artifacts-staging/desktop/candidates/*",
+                    "arn:aws:s3:::xfalcon-desktop-artifacts-staging/desktop/releases/*",
+                    "arn:aws:s3:::xfalcon-desktop-artifacts-staging/desktop/channels/staging/latest.json"
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  },
+  "Outputs": {
+    "UpdateBaseUrl": {
+      "Value": {
+        "Fn::Sub": "https://${Distribution.DomainName}"
+      }
+    },
+    "DistributionId": {
+      "Value": {
+        "Ref": "Distribution"
+      }
+    },
+    "PublisherRoleArn": {
+      "Value": {
+        "Fn::GetAtt": ["PublisherRole", "Arn"]
+      }
+    }
+  },
+  "Parameters": {
+    "DeliveryEnabled": {
+      "Type": "String",
+      "Default": "false",
+      "AllowedValues": ["false", "true"],
+      "Description": "Enable only after approving URL-based staging downloads"
+    }
+  },
+  "Conditions": {
+    "EnableDelivery": {
+      "Fn::Equals": [
+        {
+          "Ref": "DeliveryEnabled"
+        },
+        "true"
+      ]
+    }
+  }
+}

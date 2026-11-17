@@ -1,0 +1,93 @@
+name: chat-slice-e2e
+
+# DISABLED IN GITHUB ACTIONS -- run `scripts/gate.sh` locally instead.
+#
+# This file is kept, not deleted: re-enabling is `gh workflow enable chat-slice-e2e`.
+# It is disabled for cost. GitHub bills Windows at 2x and macOS at ~10x
+# against the org's included minutes, and this workflow fired on every PR
+# *and* again on the merge commit to main, so one change paid for the matrix
+# twice. Over 14 days the two per-PR workflows in this repo burned ~2,154
+# wall-clock minutes at a 66% failure rate -- failed runs bill too.
+#
+# The gate now runs before commit, via `npm run gate` (= scripts/gate.sh).
+# Known gap: that runs on one host, so clippy's `cfg(not(windows))` arms and
+# any macOS-only test path go unchecked until someone runs it on a Mac or
+# re-enables this workflow. Do one of those before releasing a change to
+# platform-conditional code -- a macOS-only startup bug shipped that way once.
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  unix-rust:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Tauri Linux dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends \
+            libwebkit2gtk-4.1-dev \
+            build-essential \
+            curl \
+            wget \
+            file \
+            libxdo-dev \
+            libssl-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: "./ -> target"
+
+      - name: Run workspace tests on Unix
+        run: cargo test --workspace --locked
+
+  chat-slice-e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx --no-install playwright install --with-deps chromium
+
+      - name: Chat slice e2e (Path B mocks)
+        run: npm run test:e2e:chat
+
+  visual-regression:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx --no-install playwright install chromium webkit
+
+      - name: Verify visual baselines
+        run: npm run test:visual

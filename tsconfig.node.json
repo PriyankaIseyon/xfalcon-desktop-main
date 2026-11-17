@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "composite": true,
+    // A Vite config runs in Node, so it needs a modern lib: without one the
+    // default ES5 lib is used and ordinary string methods do not type-check.
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo",
+    "skipLibCheck": true,
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "allowSyntheticDefaultImports": true,
+    "strict": true,
+    "noEmit": true
+  },
+  "include": ["vite.config.ts"]
+}

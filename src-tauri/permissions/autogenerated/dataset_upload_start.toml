@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-dataset-upload-start"
+description = "Enables the dataset_upload_start command without any pre-configured scope."
+commands.allow = ["dataset_upload_start"]
+
+[[permission]]
+identifier = "deny-dataset-upload-start"
+description = "Denies the dataset_upload_start command without any pre-configured scope."
+commands.deny = ["dataset_upload_start"]

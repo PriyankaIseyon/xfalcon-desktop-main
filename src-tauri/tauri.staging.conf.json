@@ -1,0 +1,9 @@
+{
+  "plugins": {
+    "updater": {
+      "endpoints": [
+        "https://d3rdmiksm582v0.cloudfront.net/desktop/channels/staging/latest.json"
+      ]
+    }
+  }
+}

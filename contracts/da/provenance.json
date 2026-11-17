@@ -1,0 +1,16 @@
+{
+  "source_url": "https://iseyon.mcp-staging.iseyon.com/openapi.json",
+  "openapi_version": "3.1.0",
+  "title": "IDA MCP Server",
+  "version": "0.1.10",
+  "sha256": "048be51a7eab7f651f9f801ed30017f88daf9b33542228e501b6d85fa5ba7ac4",
+  "da_source_revision": "beb7ebcfa2ff43ddf4e0ebd657c460755abae940",
+  "retrieved_at": "2026-10-12T15:31:05.189151+00:00",
+  "generator": {
+    "name": "oas3-gen",
+    "version": "0.26.2",
+    "mode": "types",
+    "arguments": ["--visibility crate", "--enum-layout sorted", "--all-schemas"],
+    "postprocess": "rustfmt --edition 2021"
+  }
+}

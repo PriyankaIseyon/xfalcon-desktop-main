@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-project-find-by-folder"
+description = "Enables the project_find_by_folder command without any pre-configured scope."
+commands.allow = ["project_find_by_folder"]
+
+[[permission]]
+identifier = "deny-project-find-by-folder"
+description = "Denies the project_find_by_folder command without any pre-configured scope."
+commands.deny = ["project_find_by_folder"]

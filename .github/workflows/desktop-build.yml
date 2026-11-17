@@ -1,0 +1,651 @@
+name: desktop-build
+
+# Builds the xFalcon Tauri v2 desktop app for the two supported targets:
+#   - macOS  → .app / .dmg   (runs on macos-latest)
+#   - Windows → .exe (NSIS) / .msi (runs on windows-latest)
+#
+# Cross-compiling to these targets from Linux is not possible, so each target
+# is built on its own native runner. Every run is a manual `workflow_dispatch`
+# release build for one tenant: `version` names the release tag (there is no
+# tag push to read it from), and the four `casdoor_*`/`da_base_url` inputs are
+# rendered into `src-tauri/resources/tenant-config.json` before the app is
+# built, so the resulting bundle authenticates against that tenant out of the
+# box (spec: desktop-tenant-config). These four values are OAuth
+# client-registration info, not secrets, so they're typed in as plain inputs
+# rather than stored anywhere.
+#
+# Local gates cover format/lint/test/clippy/deny. All native
+# regressions and strict Clippy also run on each release platform before packaging.
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release tag/version, e.g. v0.5.5"
+        required: true
+      da_base_url:
+        description: "Tenant DA base URL (https origin, no path)"
+        required: true
+      casdoor_issuer:
+        description: "Tenant Casdoor issuer URL"
+        required: true
+      casdoor_client_id:
+        description: "Tenant Casdoor client id"
+        required: true
+      casdoor_organization:
+        description: "Tenant Casdoor organization / tenant slug"
+        required: true
+      mcp_client_id:
+        # Bundled on BOTH platforms. Its redirect URI is the MCP loopback, one
+        # above the login one: http://127.0.0.1:19848/callback. That is a
+        # SEPARATE Casdoor registration from the login redirect on :19847, and a
+        # build that packages a client whose redirect is not registered fails at
+        # the browser step rather than at build time -- nothing here can check
+        # it, so check it before dispatching.
+        #
+        # Its secret, when the tenant issues a confidential client, comes from
+        # the MCP_CLIENT_SECRET environment secret rather than an input here:
+        # workflow_dispatch inputs are recorded in the run and visible to anyone
+        # who can read Actions.
+        #
+        # Leaving this blank is still valid and still ships: users then supply a
+        # client per server in Settings, which is sealed on their device and
+        # persists (see openspec/changes/persist-mcp-oauth-client).
+        description: "MCP sign-in fallback client id, both platforms (optional)"
+        required: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: desktop-release-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    # Staging only, deliberately. `main` is disabled while the stack is in
+    # development: a build packages the tenant's MCP OAuth client into
+    # `resources/tenant-config.json` in plain text, which is an accepted
+    # staging arrangement and NOT the production posture (see
+    # openspec/changes/persist-mcp-oauth-client/tasks.md, "Before the first
+    # production release"). Re-enabling `main` is a deliberate act that should
+    # happen together with settling the production client and rotating whatever
+    # staging secret was bundled.
+    #
+    # `publish` and `stage-artifacts` both hang off this job, so gating it here
+    # gates the whole release chain rather than half of it.
+    if: github.ref == 'refs/heads/staging'
+    environment: desktop-release
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macos-latest
+            # Universal binary covers both Apple Silicon and Intel.
+            args: "--target universal-apple-darwin"
+          - platform: windows-latest
+            args: ""
+
+    runs-on: ${{ matrix.platform }}
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Verify release source
+        # Belt and braces behind the job-level `if`: a future edit that widens
+        # that condition still cannot produce a bundle from an unintended ref.
+        if: github.ref != 'refs/heads/staging'
+        run: |
+          echo "::error::Desktop releases are restricted to the staging branch. Building from main is disabled while the tenant MCP OAuth client is bundled -- see openspec/changes/persist-mcp-oauth-client/tasks.md"
+          exit 1
+        shell: bash
+
+      - name: Setup Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@4360b52568e2003a75bf9bc1d59f33a8e3fc893c # stable
+        with:
+          # macOS universal build needs both arch targets available.
+          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
+        with:
+          workspaces: "./ -> target"
+
+      - name: Install frontend dependencies
+        # `npm ci` keeps the lockfile authoritative for the Vite build
+        # `tauri-action` invokes below.
+        run: npm ci
+
+      - name: Verify updater and Apple signing secrets
+        # Fail closed. A macOS build without a working Apple certificate would
+        # ship an unsigned, un-notarized app that Gatekeeper blocks, so every
+        # secret signing and notarization need must be present before anything
+        # is built. Empty counts as missing: GitHub Actions sets a
+        # `${{ secrets.X }}` env var to an empty string when the secret does
+        # not exist. The names are listed here, and only the names are echoed,
+        # never a value. TAURI_SIGNING_PRIVATE_KEY is the updater signature,
+        # a separate key from Apple platform signing, and is required too.
+        # Windows signing is deferred and stays optional (next step).
+        if: matrix.platform == 'macos-latest'
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          missing=0
+          for name in TAURI_SIGNING_PRIVATE_KEY APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD APPLE_SIGNING_IDENTITY APPLE_ID APPLE_PASSWORD APPLE_TEAM_ID; do
+            if [ -z "${!name}" ]; then
+              echo "::error::Required secret $name is missing or empty -- refusing to build an unsigned or un-notarized macOS release"
+              missing=1
+            fi
+          done
+          if [ "$missing" -ne 0 ]; then
+            exit 1
+          fi
+        shell: bash
+
+      - name: Verify updater and Windows signing secrets
+        # Platform codesigning (WINDOWS_CERTIFICATE and friends) is optional
+        # and in progress -- when absent this produces a plain, unsigned
+        # Windows build rather than failing the release. TAURI_SIGNING_PRIVATE_KEY
+        # (the updater signature, unrelated to Windows platform codesigning)
+        # stays mandatory either way.
+        if: matrix.platform == 'windows-latest'
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
+        run: |
+          if [ -z "$TAURI_SIGNING_PRIVATE_KEY" ]; then
+            echo "::error::Required secret TAURI_SIGNING_PRIVATE_KEY is missing"
+            exit 1
+          fi
+          if [ -z "$WINDOWS_CERTIFICATE" ]; then
+            echo "::warning::WINDOWS_CERTIFICATE is not configured -- building unsigned on Windows (official Windows signing is in progress)"
+          fi
+        shell: bash
+
+      - name: Verify release version
+        env:
+          RELEASE_VERSION: ${{ github.event.inputs.version }}
+        run: |
+          node -e "
+            const config = require('./src-tauri/tauri.conf.json');
+            const release = process.env.RELEASE_VERSION;
+            if (release !== 'v' + config.version) {
+              console.error('::error::Release version ' + release + ' must equal tauri.conf.json version v' + config.version);
+              process.exit(1);
+            }
+          "
+        shell: bash
+
+      - name: Write tenant config
+        # Renders this run's tenant inputs into the resource file
+        # `AuthConfig::from_env` reads at runtime (spec: desktop-tenant-config).
+        # The four tenant login values are OAuth client-registration info, not
+        # credentials -- see src-tauri/src/auth/config.rs. Both platforms also
+        # get the MCP fallback client when the dispatch supplies one.
+        env:
+          DA_BASE_URL: ${{ github.event.inputs.da_base_url }}
+          CASDOOR_ISSUER: ${{ github.event.inputs.casdoor_issuer }}
+          CASDOOR_CLIENT_ID: ${{ github.event.inputs.casdoor_client_id }}
+          CASDOOR_ORGANIZATION: ${{ github.event.inputs.casdoor_organization }}
+          # Bundled on macOS as well as Windows, by explicit product decision:
+          # a macOS user otherwise supplies a client per server by hand, and the
+          # tenant's own MCP endpoints are the common case.
+          #
+          # The trade this accepts: tenant-config.json is plain text inside
+          # the .app and the installer, so a bundled secret is readable by
+          # anyone holding a copy of the build -- a tenant-wide shared
+          # credential, not a per-device one. Prefer a PUBLIC client (id, no
+          # secret): PKCE, not a secret, is what protects a native app's code
+          # exchange (RFC 8252 section 8.4), so the secret does no work here.
+          #
+          # If a confidential client is unavoidable, it MUST be an application
+          # dedicated to the desktop with client_credentials DISABLED. Desktop
+          # only sends authorization_code and refresh_token, so a leaked secret
+          # still needs a human at a browser. xfalcon-web's MCP client uses
+          # client_credentials, which mints a token from the id and secret
+          # alone -- bundling that one would ship a direct token-minting key.
+          MCP_CLIENT_ID: ${{ github.event.inputs.mcp_client_id }}
+          # Scoped to the `desktop-release` environment this job already
+          # declares, so it is masked in logs and settable per tenant. Unset is
+          # a valid build: the client is then treated as public.
+          MCP_CLIENT_SECRET: ${{ secrets.MCP_CLIENT_SECRET }}
+        run: |
+          node -e "
+            const fs = require('node:fs');
+            const path = 'src-tauri/resources/tenant-config.json';
+            const cfg = {
+              da_base_url: process.env.DA_BASE_URL,
+              casdoor_issuer: process.env.CASDOOR_ISSUER,
+              casdoor_client_id: process.env.CASDOOR_CLIENT_ID,
+              casdoor_organization: process.env.CASDOOR_ORGANIZATION,
+            };
+            // Added only when supplied, so it stays out of the required-field
+            // check below: an absent MCP client id is a valid build, and an
+            // empty string would become a client id of '' in the bundle.
+            const mcpClientId = String(process.env.MCP_CLIENT_ID ?? '').trim();
+            const mcpClientSecret = String(process.env.MCP_CLIENT_SECRET ?? '').trim();
+            // The secret is written only beside its id. On its own it belongs to
+            // no client, and the app would never read it -- shipping it anyway
+            // would put a live credential in the bundle for nothing.
+            if (mcpClientSecret && !mcpClientId) {
+              console.error('::error::MCP_CLIENT_SECRET is set but mcp_client_id input is empty -- a secret without its client id cannot be used and will not be bundled');
+              process.exit(1);
+            }
+            const written_cfg = {
+              ...cfg,
+              ...(mcpClientId ? { mcp_client_id: mcpClientId } : {}),
+              ...(mcpClientId && mcpClientSecret ? { mcp_client_secret: mcpClientSecret } : {}),
+            };
+            fs.writeFileSync(path, JSON.stringify(written_cfg, null, 2));
+            const written = JSON.parse(fs.readFileSync(path, 'utf8'));
+            for (const key of Object.keys(cfg)) {
+              const value = String(written[key] ?? '').trim();
+              if (!value) {
+                console.error('::error::tenant-config.json missing ' + key);
+                process.exit(1);
+              }
+            }
+            // Never log the secret itself, only whether one was bundled.
+            const mcpNote = mcpClientId
+              ? (mcpClientSecret ? '(with a confidential MCP fallback client)' : '(with a public MCP fallback client)')
+              : '(no MCP fallback client -- sign-in will collect one in Settings)';
+            console.log('tenant-config.json written for', written.casdoor_organization, mcpNote);
+          "
+        shell: bash
+
+      - name: Configure Apple signing and notarization
+        # The previous step has already refused a build with any of these
+        # missing or empty, so they are exported unconditionally. Tauri's macOS
+        # bundler treats APPLE_CERTIFICATE as "configured" the moment the env
+        # var is merely present, which is why an empty value must never reach
+        # the build step.
+        if: matrix.platform == 'macos-latest'
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          for name in APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD APPLE_SIGNING_IDENTITY APPLE_ID APPLE_PASSWORD APPLE_TEAM_ID; do
+            if [ -z "${!name}" ]; then
+              echo "::error::$name is missing or empty -- refusing to build an unsigned or un-notarized macOS release"
+              exit 1
+            fi
+            # The multi-line form with a random delimiter: a value containing a
+            # newline cannot inject a second variable into later steps.
+            delimiter="xf_$(openssl rand -hex 16)"
+            {
+              echo "$name<<$delimiter"
+              echo "${!name}"
+              echo "$delimiter"
+            } >> "$GITHUB_ENV"
+          done
+        shell: bash
+
+      - name: Import optional Windows signing certificate
+        # Skips cleanly when WINDOWS_CERTIFICATE isn't configured, leaving
+        # TAURI_CONFIG unset so tauri-action builds a plain unsigned .exe/.msi
+        # instead of failing.
+        if: matrix.platform == 'windows-latest'
+        env:
+          WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
+          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+          WINDOWS_CERTIFICATE_THUMBPRINT: ${{ secrets.WINDOWS_CERTIFICATE_THUMBPRINT }}
+        shell: pwsh
+        run: |
+          if (-not $env:WINDOWS_CERTIFICATE) {
+            Write-Host "WINDOWS_CERTIFICATE is not configured -- building unsigned on Windows (official Windows signing is in progress)"
+            exit 0
+          }
+          $certificatePath = Join-Path $env:RUNNER_TEMP "xfalcon-signing.pfx"
+          [IO.File]::WriteAllBytes($certificatePath, [Convert]::FromBase64String($env:WINDOWS_CERTIFICATE))
+          $password = ConvertTo-SecureString $env:WINDOWS_CERTIFICATE_PASSWORD -AsPlainText -Force
+          $certificate = Import-PfxCertificate -FilePath $certificatePath -CertStoreLocation Cert:\CurrentUser\My -Password $password
+          if ($certificate.Thumbprint -ne $env:WINDOWS_CERTIFICATE_THUMBPRINT) {
+            throw "Imported Windows certificate thumbprint does not match WINDOWS_CERTIFICATE_THUMBPRINT"
+          }
+          $tauriConfig = @{
+            bundle = @{
+              windows = @{
+                certificateThumbprint = $certificate.Thumbprint
+                digestAlgorithm = "sha256"
+                timestampUrl = "http://timestamp.digicert.com"
+                tsp = $true
+              }
+            }
+          } | ConvertTo-Json -Compress -Depth 4
+          "TAURI_CONFIG=$tauriConfig" >> $env:GITHUB_ENV
+          "WINDOWS_IMPORTED_CERTIFICATE_THUMBPRINT=$($certificate.Thumbprint)" >> $env:GITHUB_ENV
+          Remove-Item -LiteralPath $certificatePath -Force
+
+      - name: Verify native quality and regression tests
+        run: |
+          cargo fmt --all -- --check
+          cargo clippy --workspace --all-targets --locked -- -D warnings
+          cargo test --workspace --locked
+        shell: bash
+
+      - name: Build desktop app
+        uses: tauri-apps/tauri-action@84b9d35b5fc46c1e45415bdb6144030364f7ebc5 # v0
+        env:
+          # --- Code-signing / updater secrets ---
+          # TAURI_SIGNING_PRIVATE_KEY is required to produce signed, auto-updatable
+          # artifacts (createUpdaterArtifacts is enabled in tauri.conf.json).
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          # Platform signing variables are populated by the guarded setup
+          # steps above. Missing values fail before this publication step.
+        with:
+          args: ${{ matrix.args }} ${{ github.ref == 'refs/heads/staging' && '--config src-tauri/tauri.staging.conf.json' || '' }}
+
+      - name: Verify the macOS bundle carries its tenant config
+        # tenant-config.json is written above ("Write tenant config") and
+        # declared as a bundle resource in tauri.conf.json, but nothing in
+        # this pipeline previously confirmed it actually reached the .app --
+        # LOCAL-SETUP.md's own "Known gaps" section notes a macOS-only
+        # startup bug has shipped silently before for exactly this class of
+        # thing, since this repo has no macOS host to catch it locally.
+        # Unrelated to code signing, so this runs regardless of whether
+        # APPLE_CERTIFICATE is configured.
+        if: matrix.platform == 'macos-latest'
+        env:
+          DA_BASE_URL: ${{ github.event.inputs.da_base_url }}
+          CASDOOR_ISSUER: ${{ github.event.inputs.casdoor_issuer }}
+          CASDOOR_CLIENT_ID: ${{ github.event.inputs.casdoor_client_id }}
+          CASDOOR_ORGANIZATION: ${{ github.event.inputs.casdoor_organization }}
+          # Checked the same way as Windows now that macOS packages the client
+          # too: a dispatch that supplied one and a bundle that lost it look
+          # identical until a user tries to sign in.
+          MCP_CLIENT_ID: ${{ github.event.inputs.mcp_client_id }}
+          MCP_CLIENT_SECRET_SET: ${{ secrets.MCP_CLIENT_SECRET != '' && '1' || '0' }}
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          apps=(target/*/release/bundle/macos/*.app)
+          if [ ${#apps[@]} -eq 0 ]; then
+            echo "::error::no .app bundle was produced to verify"
+            exit 1
+          fi
+          for app in "${apps[@]}"; do
+            node scripts/verify-tenant-config.mjs \
+              "$app/Contents/Resources/resources/tenant-config.json" \
+              --da-base-url "$DA_BASE_URL" \
+              --casdoor-issuer "$CASDOOR_ISSUER" \
+              --casdoor-client-id "$CASDOOR_CLIENT_ID" \
+              --casdoor-organization "$CASDOOR_ORGANIZATION" \
+              --mcp-client-id "$MCP_CLIENT_ID" \
+              --expect-secret "$MCP_CLIENT_SECRET_SET"
+          done
+        shell: bash
+
+      - name: Verify the Windows bundle carries its tenant config
+        # The macOS check above has caught a lost tenant-config before. Windows
+        # had no equivalent, so the same class of failure could ship there
+        # unnoticed -- and Windows is the platform this repo also cannot build
+        # locally. `resources/` is staged beside the exe before NSIS and MSI
+        # pack it, so verifying the staged copy verifies what both installers
+        # embed.
+        if: matrix.platform == 'windows-latest'
+        env:
+          DA_BASE_URL: ${{ github.event.inputs.da_base_url }}
+          CASDOOR_ISSUER: ${{ github.event.inputs.casdoor_issuer }}
+          CASDOOR_CLIENT_ID: ${{ github.event.inputs.casdoor_client_id }}
+          CASDOOR_ORGANIZATION: ${{ github.event.inputs.casdoor_organization }}
+          MCP_CLIENT_ID: ${{ github.event.inputs.mcp_client_id }}
+          MCP_CLIENT_SECRET_SET: ${{ secrets.MCP_CLIENT_SECRET != '' && '1' || '0' }}
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          staged=(target/release/resources/tenant-config.json target/*/release/resources/tenant-config.json)
+          if [ ${#staged[@]} -eq 0 ]; then
+            echo "::error::no staged resources/tenant-config.json was produced -- Windows installs of this build cannot authenticate against the tenant and will show an empty (DA-backed) MCP server list until this is fixed"
+            exit 1
+          fi
+          for resource in "${staged[@]}"; do
+            node scripts/verify-tenant-config.mjs "$resource" \
+              --da-base-url "$DA_BASE_URL" \
+              --casdoor-issuer "$CASDOOR_ISSUER" \
+              --casdoor-client-id "$CASDOOR_CLIENT_ID" \
+              --casdoor-organization "$CASDOOR_ORGANIZATION" \
+              --mcp-client-id "$MCP_CLIENT_ID" \
+              --expect-secret "$MCP_CLIENT_SECRET_SET"
+          done
+        shell: bash
+
+      - name: Notarize and staple the macOS disk image
+        # tauri-action notarizes and staples the .app, then wraps it in a DMG
+        # that is signed but never itself notarized. Gatekeeper assesses a
+        # downloaded disk image before anything is mounted, so that DMG is
+        # refused with "Unnotarized Developer ID" even though the app inside is
+        # perfectly notarized. v0.5.2 shipped exactly that way.
+        #
+        # Submitting the image also covers its contents, so this is one
+        # submission rather than a second pass over the app.
+        if: matrix.platform == 'macos-latest'
+        run: |
+          shopt -s nullglob
+          dmgs=(target/*/release/bundle/dmg/*.dmg)
+          if [ ${#dmgs[@]} -eq 0 ]; then
+            echo "::error::no DMG was produced to notarize"
+            exit 1
+          fi
+          for dmg in "${dmgs[@]}"; do
+            echo "Notarizing $dmg"
+            xcrun notarytool submit "$dmg" \
+              --apple-id "$APPLE_ID" \
+              --password "$APPLE_PASSWORD" \
+              --team-id "$APPLE_TEAM_ID" \
+              --wait
+            xcrun stapler staple "$dmg"
+          done
+        shell: bash
+
+      - name: Verify the macOS artifacts pass Gatekeeper
+        # A green build step is not evidence the artifact is usable. Hold every
+        # macOS release to what Gatekeeper will actually say rather than
+        # discovering it after publication. This runs unconditionally: signing
+        # is mandatory for macOS, so there is no unsigned path to skip.
+        if: matrix.platform == 'macos-latest'
+        run: |
+          shopt -s nullglob
+          dmgs=(target/*/release/bundle/dmg/*.dmg)
+          updates=(target/*/release/bundle/macos/*.app.tar.gz)
+          [[ ${#dmgs[@]} -gt 0 && ${#updates[@]} -gt 0 ]] || { echo "Missing macOS release artifacts" >&2; exit 1; }
+          for artifact in "${dmgs[@]}" "${updates[@]}"; do
+            scripts/verify-macos-release.sh "$artifact"
+          done
+        shell: bash
+
+      - name: Remove Windows signing certificate
+        if: always() && matrix.platform == 'windows-latest' && env.WINDOWS_IMPORTED_CERTIFICATE_THUMBPRINT != ''
+        shell: pwsh
+        run: Remove-Item -LiteralPath "Cert:\CurrentUser\My\$env:WINDOWS_IMPORTED_CERTIFICATE_THUMBPRINT" -Force
+
+      - name: Clear Apple signing environment
+        if: always() && matrix.platform == 'macos-latest'
+        run: |
+          for name in APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD APPLE_SIGNING_IDENTITY APPLE_ID APPLE_PASSWORD APPLE_TEAM_ID; do
+            echo "$name=" >> "$GITHUB_ENV"
+          done
+        shell: bash
+
+      - name: Generate CycloneDX SBOM
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0
+        with:
+          path: .
+          format: cyclonedx-json
+          output-file: target/xfalcon-desktop-${{ matrix.platform }}.cdx.json
+          upload-artifact: false
+          upload-release-assets: false
+
+      - name: Attest release bundle provenance
+        # Attestation storage is a GitHub feature gated on org billing plan
+        # (private repos on lower tiers get "Feature not available"). Don't
+        # let that block the release -- continue-on-error so a plan/repo
+        # visibility change is what's needed, not a workflow fix.
+        continue-on-error: true
+        uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2
+        with:
+          subject-path: |
+            target/**/release/bundle/**/*.dmg
+            target/**/release/bundle/**/*.exe
+            target/**/release/bundle/**/*.msi
+            target/**/release/bundle/**/*.tar.gz
+            target/**/release/bundle/**/*.zip
+            target/xfalcon-desktop-${{ matrix.platform }}.cdx.json
+
+      - name: Upload bundles as workflow artifacts
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: xfalcon-desktop-${{ matrix.platform }}
+          path: |
+            target/**/release/bundle/**/*
+            target/xfalcon-desktop-${{ matrix.platform }}.cdx.json
+          if-no-files-found: error
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: desktop-release
+    permissions:
+      contents: write
+    env:
+      RELEASE_TAG: ${{ github.event.inputs.version }}
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Download signed bundles
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: xfalcon-desktop-*
+          path: release-input
+
+      - name: Prepare one fail-closed update manifest
+        run: |
+          APP_VERSION="$(node -p "require('./src-tauri/tauri.conf.json').version")"
+          node scripts/prepare-desktop-release.mjs \
+            --input=release-input \
+            --output=release-ready \
+            --repository="$GITHUB_REPOSITORY" \
+            --tag="$RELEASE_TAG" \
+            --version="$APP_VERSION" \
+            --notes-file="docs/releases/$RELEASE_TAG.md"
+        shell: bash
+
+      - name: Publish immutable draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$RELEASE_TAG" >/dev/null 2>&1; then
+            echo "::error::Release tag $RELEASE_TAG already exists; release bytes are immutable"
+            exit 1
+          fi
+          mapfile -d '' assets < <(find release-ready -maxdepth 1 -type f -print0 | sort -z)
+          if [ "${#assets[@]}" -eq 0 ]; then
+            echo "::error::No release assets were prepared"
+            exit 1
+          fi
+          gh release create "$RELEASE_TAG" \
+            --draft \
+            --target "$GITHUB_SHA" \
+            --title "xFalcon Desktop $RELEASE_TAG" \
+            --notes-file "docs/releases/$RELEASE_TAG.md" \
+            "${assets[@]}"
+        shell: bash
+
+  stage-artifacts:
+    if: github.ref == 'refs/heads/staging'
+    needs: publish
+    runs-on: ubuntu-latest
+    environment: desktop-staging
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      RELEASE_TAG: ${{ github.event.inputs.version }}
+      DESKTOP_UPDATE_BASE_URL: ${{ vars.DESKTOP_UPDATE_BASE_URL }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+      - name: Download the same signed build artifacts
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: xfalcon-desktop-*
+          path: release-input
+      - name: Record deterministic candidate date
+        run: git show -s --format=%cI HEAD > release-date.txt
+      - name: Prepare staging delivery manifest
+        run: |
+          node --input-type=module <<'JS'
+          import { readFile } from 'node:fs/promises';
+          import { prepareDesktopRelease, assertStagingDeliveryBase } from './scripts/prepare-desktop-release.mjs';
+          await assertStagingDeliveryBase(process.env.DESKTOP_UPDATE_BASE_URL);
+          await prepareDesktopRelease({ input: 'release-input', output: 'release-staging', repository: process.env.GITHUB_REPOSITORY,
+            tag: process.env.RELEASE_TAG, version: process.env.RELEASE_TAG.slice(1), deliveryBase: process.env.DESKTOP_UPDATE_BASE_URL,
+            publishedAt: (await readFile('release-date.txt', 'utf8')).trim(),
+            notes: await readFile(`docs/releases/${process.env.RELEASE_TAG}.md`, 'utf8') });
+          JS
+      - name: Verify publisher contracts
+        run: node --test scripts/prepare-desktop-release.test.mjs scripts/publish-desktop-staging.test.mjs
+      - name: Authenticate staging publisher
+        uses: aws-actions/configure-aws-credentials@ff717079ee2060e4bcee96c4779b553acc87447c # v4
+        with:
+          role-to-assume: arn:aws:iam::572186105468:role/xfalcon-desktop-artifacts-staging-publisher
+          aws-region: us-east-1
+          allowed-account-ids: "572186105468"
+      - name: Upload immutable candidate
+        run: node scripts/publish-desktop-staging.mjs stage "${RELEASE_TAG#v}" release-staging
+      - name: Verify CloudFront delivery and advertise staging update
+        run: node scripts/publish-desktop-staging.mjs promote "${RELEASE_TAG#v}"
+
+  cleanup-releases:
+    # Failed builds or delivery must never discard an existing release.
+    if: github.ref == 'refs/heads/staging'
+    needs: stage-artifacts
+    concurrency:
+      group: desktop-release-cleanup
+      cancel-in-progress: false
+    runs-on: ubuntu-latest
+    environment: desktop-release
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+      - name: Verify release cleanup
+        run: node --test scripts/cleanup-desktop-releases.test.mjs
+      - name: Keep five rolling GitHub releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.event.inputs.version }}
+        run: node scripts/cleanup-desktop-releases.mjs "$RELEASE_TAG"

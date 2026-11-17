@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light" data-font-size="small">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>xFalcon</title>
+    <!-- Product faces (spec: app-typography): preloaded so first paint
+         renders in Google Sans / Geist Mono with no visible swap. Italic
+         stays lazy — it is rare in chat and swaps invisibly. -->
+    <link rel="preload" href="/fonts/GoogleSans-Variable.ttf" as="font" type="font/ttf" crossorigin />
+    <link rel="preload" href="/fonts/GeistMono.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="stylesheet" href="/src/index.css?direct" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

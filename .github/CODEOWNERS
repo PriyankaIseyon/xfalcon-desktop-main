@@ -1,0 +1,73 @@
+# CODEOWNERS for xfalcon-desktop
+#
+# This file names reviewers for security-critical paths. It takes effect only
+# when branch protection on `staging` and `main` requires review from Code
+# Owners. That setting is owned by the IT team on GitHub; this file alone does
+# not enforce anything.
+#
+# Owners listed here are the repository admins. IT should replace them with a
+# team handle once a team with write access exists.
+#
+# Rules: one pattern per line, followed by owners. The LAST matching pattern
+# wins. Patterns follow .gitignore rules, and a leading "/" anchors a pattern
+# to the repository root.
+
+# Tauri security core: command allowlist, capability checks, CSP and navigation tests
+/src-tauri/src/security/ @jeevan-iseyon @kyle-iseyon @walter-iseyon
+
+# Tauri capability and permission files
+/src-tauri/capabilities/ @jeevan-iseyon @kyle-iseyon @walter-iseyon
+/src-tauri/permissions/ @jeevan-iseyon @kyle-iseyon @walter-iseyon
+
+# Tauri app config: CSP, updater key and endpoint, bundle config
+/src-tauri/tauri.conf.json @jeevan-iseyon @kyle-iseyon @walter-iseyon
+/src-tauri/tauri.staging.conf.json @jeevan-iseyon @kyle-iseyon @walter-iseyon
+
+# Identity, secrets, encryption at rest
+/src-tauri/src/auth/ @jeevan-iseyon @kyle-iseyon @walter-iseyon
+/src-tauri/src/credentials/ @jeevan-iseyon @kyle-iseyon @walter-iseyon
+/src-tauri/src/persistence/ @jeevan-iseyon @kyle-iseyon @walter-iseyon
+
+# Outbound-address rules
+/src-tauri/src/mcp/registry.rs @jeevan-iseyon @kyle-iseyon @walter-iseyon
+/src-tauri/src/mcp/dns.rs @jeevan-iseyon @kyle-iseyon @walter-iseyon
+/src-tauri/src/providers/custom_openai.rs @jeevan-iseyon @kyle-iseyon @walter-iseyon
+
+# Filesystem containment and tool policy
+/src-tauri/src/projects/ @jeevan-iseyon @kyle-iseyon @walter-iseyon
+/src-tauri/src/tools/ @jeevan-iseyon @kyle-iseyon @walter-iseyon
+/src-tauri/src/approvals/ @jeevan-iseyon @kyle-iseyon @walter-iseyon
+/src-tauri/src/agent/ @jeevan-iseyon @kyle-iseyon @walter-iseyon
+
+# Audit trail and redaction
+/src-tauri/src/audit/ @jeevan-iseyon @kyle-iseyon @walter-iseyon
+/src-tauri/src/diagnostics/ @jeevan-iseyon @kyle-iseyon @walter-iseyon
+
+# Updater
+/src-tauri/src/desktop_update.rs @jeevan-iseyon @kyle-iseyon @walter-iseyon
+
+# The process entry point (purge check runs first), the reset command and the
+# installer hook decide what an uninstall or reset deletes.
+/src-tauri/src/lib.rs @jeevan-iseyon @kyle-iseyon @walter-iseyon
+/src-tauri/src/app/commands.rs @jeevan-iseyon @kyle-iseyon @walter-iseyon
+/src-tauri/src/path_grants.rs @jeevan-iseyon @kyle-iseyon @walter-iseyon
+/src-tauri/windows/ @jeevan-iseyon @kyle-iseyon @walter-iseyon
+
+# CI workflows, release scripts, and this file
+/.github/ @jeevan-iseyon @kyle-iseyon @walter-iseyon
+/scripts/ @jeevan-iseyon @kyle-iseyon @walter-iseyon
+
+# Supply chain: dependency policy and lockfiles
+/deny.toml @jeevan-iseyon @kyle-iseyon @walter-iseyon
+/Cargo.toml @jeevan-iseyon @kyle-iseyon @walter-iseyon
+/Cargo.lock @jeevan-iseyon @kyle-iseyon @walter-iseyon
+/src-tauri/Cargo.toml @jeevan-iseyon @kyle-iseyon @walter-iseyon
+/package.json @jeevan-iseyon @kyle-iseyon @walter-iseyon
+/package-lock.json @jeevan-iseyon @kyle-iseyon @walter-iseyon
+
+# Security documentation
+/SECURITY.md @jeevan-iseyon @kyle-iseyon @walter-iseyon
+/docs/security.md @jeevan-iseyon @kyle-iseyon @walter-iseyon
+/docs/threat-model.md @jeevan-iseyon @kyle-iseyon @walter-iseyon
+/docs/compliance.md @jeevan-iseyon @kyle-iseyon @walter-iseyon
+/docs/soc2-control-mapping.md @jeevan-iseyon @kyle-iseyon @walter-iseyon

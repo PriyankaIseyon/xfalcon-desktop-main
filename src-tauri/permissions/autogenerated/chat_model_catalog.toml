@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-chat-model-catalog"
+description = "Enables the chat_model_catalog command without any pre-configured scope."
+commands.allow = ["chat_model_catalog"]
+
+[[permission]]
+identifier = "deny-chat-model-catalog"
+description = "Denies the chat_model_catalog command without any pre-configured scope."
+commands.deny = ["chat_model_catalog"]

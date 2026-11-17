@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-project-office-preview"
+description = "Enables the project_office_preview command without any pre-configured scope."
+commands.allow = ["project_office_preview"]
+
+[[permission]]
+identifier = "deny-project-office-preview"
+description = "Denies the project_office_preview command without any pre-configured scope."
+commands.deny = ["project_office_preview"]

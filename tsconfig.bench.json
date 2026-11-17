@@ -1,0 +1,22 @@
+{
+  // Benchmarks and end-to-end specs, typechecked with the source they guard.
+  //
+  // A project of their own rather than an entry in `tsconfig.app.json`: these
+  // files run in Node and need its globals, and folding them into the app
+  // project would hand `src` a `process` and a `node:fs` that a renderer must
+  // never have. It is checked by a second `tsc` pass rather than a project
+  // reference, because a reference has to be `composite`, and a composite
+  // project may not reach into files another project owns.
+  //
+  // They went untypechecked entirely until now, and it showed:
+  // `benchmarks/chat/storeApply.perf.test.ts` built a `ChatStoreSnapshot` five
+  // fields behind the store it guards, and nothing reported it (spec:
+  // chat-streaming-performance, "a drifted fixture is a compile error").
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": {
+    "composite": false,
+    "noEmit": true,
+    "types": ["node", "vitest/globals", "@testing-library/jest-dom"]
+  },
+  "include": ["benchmarks", "tests"]
+}

@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-dataset-delete"
+description = "Enables the dataset_delete command without any pre-configured scope."
+commands.allow = ["dataset_delete"]
+
+[[permission]]
+identifier = "deny-dataset-delete"
+description = "Denies the dataset_delete command without any pre-configured scope."
+commands.deny = ["dataset_delete"]

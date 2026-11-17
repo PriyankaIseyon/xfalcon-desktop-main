@@ -1,0 +1,3 @@
+
+</inventory>
+</available_tools>

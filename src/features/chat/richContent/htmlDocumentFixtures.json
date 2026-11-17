@@ -1,0 +1,100 @@
+{
+  "note": "Shared cases pinning the TWO HTML-document scanners to each other (spec: reports). The renderer supplies a document's ordinal; the backend resolves it. Divergence means the user saves a document other than the one they clicked, and nothing in the result says so. `src/features/chat/richContent/detect.test.ts` and `src-tauri/src/reports/tests.rs` both read THIS file, so a case added for one is enforced on the other. Rust reaches into the frontend tree here the same way `crates/contracts/tests/contract_snapshots.rs` reaches into `src/lib/generated/contracts.ts`.",
+  "cases": [
+    {
+      "name": "one html fence",
+      "text": "Here is your dashboard.\n\n```html\n<!doctype html><html><head><title>Alpha</title></head><body><div id=\"a\">Alpha bookings by region for the third quarter</div></body></html>\n```\n\nLet me know if you want it by month.",
+      "documents": [
+        "<!doctype html><html><head><title>Alpha</title></head><body><div id=\"a\">Alpha bookings by region for the third quarter</div></body></html>"
+      ]
+    },
+    {
+      "name": "three html fences separated by prose",
+      "text": "First:\n\n```html\n<!doctype html><html><head><title>Alpha</title></head><body><div id=\"a\">Alpha bookings by region for the third quarter</div></body></html>\n```\n\nSecond:\n\n```html\n<!doctype html><html><head><title>Beta</title></head><body><div id=\"b\">Beta bookings by region for the third quarter</div></body></html>\n```\n\nThird:\n\n```html\n<!doctype html><html><head><title>Gamma</title></head><body><div id=\"c\">Gamma bookings by region for the third quarter</div></body></html>\n```\n",
+      "documents": [
+        "<!doctype html><html><head><title>Alpha</title></head><body><div id=\"a\">Alpha bookings by region for the third quarter</div></body></html>",
+        "<!doctype html><html><head><title>Beta</title></head><body><div id=\"b\">Beta bookings by region for the third quarter</div></body></html>",
+        "<!doctype html><html><head><title>Gamma</title></head><body><div id=\"c\">Gamma bookings by region for the third quarter</div></body></html>"
+      ]
+    },
+    {
+      "name": "an unlabelled fence holding a whole document",
+      "text": "```\n<!doctype html><html><head><title>Alpha</title></head><body><div id=\"a\">Alpha bookings by region for the third quarter</div></body></html>\n```",
+      "documents": [
+        "<!doctype html><html><head><title>Alpha</title></head><body><div id=\"a\">Alpha bookings by region for the third quarter</div></body></html>"
+      ]
+    },
+    {
+      "name": "an info string with a trailing word still names the language",
+      "text": "```html copy\n<!doctype html><html><head><title>Alpha</title></head><body><div id=\"a\">Alpha bookings by region for the third quarter</div></body></html>\n```",
+      "documents": [
+        "<!doctype html><html><head><title>Alpha</title></head><body><div id=\"a\">Alpha bookings by region for the third quarter</div></body></html>"
+      ]
+    },
+    {
+      "name": "the document span only, never the fence body around it",
+      "text": "```html\n<!doctype html><html><head><title>Alpha</title></head><body><div id=\"a\">Alpha bookings by region for the third quarter</div></body></html>\n<!-- generated 2026-08-12 -->\n```",
+      "documents": [
+        "<!doctype html><html><head><title>Alpha</title></head><body><div id=\"a\">Alpha bookings by region for the third quarter</div></body></html>"
+      ]
+    },
+    {
+      "name": "a document quoted inside a markdown fence is not stolen from it",
+      "text": "```markdown\nExample:\n\n<!doctype html><html><head><title>Alpha</title></head><body><div id=\"a\">Alpha bookings by region for the third quarter</div></body></html>\n```",
+      "documents": []
+    },
+    {
+      "name": "a four-backtick fence is consumed whole, so its nested fence is not a block",
+      "text": "````\n```html\n<!doctype html><html><head><title>Alpha</title></head><body><div id=\"a\">Alpha bookings by region for the third quarter</div></body></html>\n```\n````",
+      "documents": []
+    },
+    {
+      "name": "prose that merely mentions the tags is not a document",
+      "text": "The report is a full <html> document and it ends with </html>, which is why the preview needs its own origin rather than a data URL of its own.",
+      "documents": []
+    },
+    {
+      "name": "a json fence keeps its own branch",
+      "text": "```json\n[{\"region\":\"EMEA\",\"bookings\":1200},{\"region\":\"AMER\",\"bookings\":900}]\n```",
+      "documents": []
+    },
+    {
+      "name": "an xml-tagged fence holding a document counts",
+      "text": "```xml\n<html><head><title>Alpha</title></head><body><div id=\"a\">Alpha bookings by region for the third quarter, charted</div></body></html>\n```",
+      "documents": [
+        "<html><head><title>Alpha</title></head><body><div id=\"a\">Alpha bookings by region for the third quarter, charted</div></body></html>"
+      ]
+    },
+    {
+      "name": "a document that never closes is still the artifact the card rendered",
+      "text": "```html\n<!doctype html><html><head><title>Alpha</title></head><body><div id=\"a\">Alpha bookings by region for the third quarter\n```",
+      "documents": [
+        "<!doctype html><html><head><title>Alpha</title></head><body><div id=\"a\">Alpha bookings by region for the third quarter"
+      ]
+    },
+    {
+      "name": "a span under the document floor falls back to the fence body",
+      "text": "```html\n<html><body>tiny</body></html>\n```",
+      "documents": ["<html><body>tiny</body></html>"]
+    },
+    {
+      "name": "a span under the document floor in characters but over it in bytes falls back to the fence body",
+      "text": "```html\n<html>éééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé</html>\nStray note\n```",
+      "documents": ["<html>éééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé</html>\nStray note"]
+    },
+    {
+      "name": "a no-break space after the html tag still opens a document",
+      "text": "```html\n<html lang=\"en\"><body>xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx</body></html>\nTail prose\n```",
+      "documents": [
+        "<html lang=\"en\"><body>xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx</body></html>"
+      ]
+    },
+    {
+      "name": "a byte-order mark before the document is not part of its span",
+      "text": "```html\n﻿<!doctype html><html><body>xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx</body></html>\n```",
+      "documents": [
+        "<!doctype html><html><body>xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx</body></html>"
+      ]
+    }
+  ]
+}

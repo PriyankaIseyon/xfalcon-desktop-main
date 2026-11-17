@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-mcp-server-sign-in"
+description = "Enables the mcp_server_sign_in command without any pre-configured scope."
+commands.allow = ["mcp_server_sign_in"]
+
+[[permission]]
+identifier = "deny-mcp-server-sign-in"
+description = "Denies the mcp_server_sign_in command without any pre-configured scope."
+commands.deny = ["mcp_server_sign_in"]

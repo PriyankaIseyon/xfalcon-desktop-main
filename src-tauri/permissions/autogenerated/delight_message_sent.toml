@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-delight-message-sent"
+description = "Enables the delight_message_sent command without any pre-configured scope."
+commands.allow = ["delight_message_sent"]
+
+[[permission]]
+identifier = "deny-delight-message-sent"
+description = "Denies the delight_message_sent command without any pre-configured scope."
+commands.deny = ["delight_message_sent"]

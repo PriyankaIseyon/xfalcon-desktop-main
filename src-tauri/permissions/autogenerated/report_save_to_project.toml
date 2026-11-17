@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-report-save-to-project"
+description = "Enables the report_save_to_project command without any pre-configured scope."
+commands.allow = ["report_save_to_project"]
+
+[[permission]]
+identifier = "deny-report-save-to-project"
+description = "Denies the report_save_to_project command without any pre-configured scope."
+commands.deny = ["report_save_to_project"]

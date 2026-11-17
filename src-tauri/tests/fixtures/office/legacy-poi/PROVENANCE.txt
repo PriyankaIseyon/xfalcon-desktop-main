@@ -1,0 +1,55 @@
+Real legacy Office fixtures for the strict-reader tests.
+
+Source project: Apache POI (https://github.com/apache/poi), repository test-data
+at commit 140db93794f3029dadd216be522e68c8d9b76ec8.
+Apache POI is distributed under Apache License 2.0. These files are copied
+without modification from the named upstream test-data paths; this project does
+not claim authorship of their document contents.
+
+* simple.doc
+  https://raw.githubusercontent.com/apache/poi/140db93794f3029dadd216be522e68c8d9b76ec8/test-data/document/simple.doc
+  SHA-256: 4876e828e62d490fa188c7c4e47013e2e0dfdf02f5903dfd374bc0d2b2049ca1
+  Identified by its OLE summary properties as a Microsoft Word 97-SR2 document.
+
+* text_shapes.ppt
+  https://raw.githubusercontent.com/apache/poi/140db93794f3029dadd216be522e68c8d9b76ec8/test-data/slideshow/text_shapes.ppt
+  SHA-256: 70c63540abc705da64764a9bcb5380bde9655264c2c3f047c3ee4b7dded3de3f
+  Identified by its OLE summary properties as a Microsoft PowerPoint document.
+
+* basic_test_ppt_file.ppt
+  https://raw.githubusercontent.com/apache/poi/140db93794f3029dadd216be522e68c8d9b76ec8/test-data/slideshow/basic_test_ppt_file.ppt
+  SHA-256: e8fd4c38ad72ce3735acbca0b60dd5870fb60f819c169e3947d166f4f1bcc79d
+  POI's TestNotesText asserts notes for its first two slides.
+
+* simple-table.doc
+  https://raw.githubusercontent.com/apache/poi/140db93794f3029dadd216be522e68c8d9b76ec8/test-data/document/simple-table.doc
+  SHA-256: 67d7fe8e0555c16516354498a5935f24eeef90beb5efbf526f93a1d6c734da43
+  Contains a two-row, three-column table. Expected cells are asserted in the parser test.
+
+* HeaderFooterUnicode.doc
+  https://raw.githubusercontent.com/apache/poi/140db93794f3029dadd216be522e68c8d9b76ec8/test-data/document/HeaderFooterUnicode.doc
+  SHA-256: 8bd7fc9552bccb7b71a0dc34ffd801e7d3547d1317fd75d0c35fca3572f6fa4b
+  POI's TestWordExtractor asserts the Euro header and Moliere footer strings.
+
+* footnote.doc
+  https://raw.githubusercontent.com/apache/poi/140db93794f3029dadd216be522e68c8d9b76ec8/test-data/document/footnote.doc
+  SHA-256: 81a18ac63010789ca08c28de107658a308c758a3cfc667a6edf11ffe888d3e13
+  POI's TestWordExtractor asserts body, footnote, endnote, and comment content.
+
+* empty.doc
+  https://raw.githubusercontent.com/apache/poi/140db93794f3029dadd216be522e68c8d9b76ec8/test-data/document/empty.doc
+  SHA-256: 5f421a3970c70f12296073478380c0849a54c03fb2f4842392c7d3c5039bf1eb
+  Used to verify that an empty Word document returns NoText.
+
+* PasswordProtected.doc
+  https://raw.githubusercontent.com/apache/poi/140db93794f3029dadd216be522e68c8d9b76ec8/test-data/document/PasswordProtected.doc
+  SHA-256: 863d2216a6f5bb4cec0ea4131a05ae0822dbce347e2940155ef638c6d64935fe
+  Used to verify that encrypted Word files are rejected.
+
+* Password_Protected-hello.ppt
+  https://raw.githubusercontent.com/apache/poi/140db93794f3029dadd216be522e68c8d9b76ec8/test-data/slideshow/Password_Protected-hello.ppt
+  SHA-256: 8d0dd9f53317a720687cf5234af0c021fab665194b09b9bb56a3f71b495bf45a
+  Used to verify that encrypted PowerPoint files are rejected.
+
+The upstream Apache POI LICENSE and NOTICE files are included alongside these
+fixtures. Apache POI source project license: https://www.apache.org/licenses/LICENSE-2.0

@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-chat-message-feedback-set"
+description = "Enables the chat_message_feedback_set command without any pre-configured scope."
+commands.allow = ["chat_message_feedback_set"]
+
+[[permission]]
+identifier = "deny-chat-message-feedback-set"
+description = "Denies the chat_message_feedback_set command without any pre-configured scope."
+commands.deny = ["chat_message_feedback_set"]

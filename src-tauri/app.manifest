@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!--
+  The single Windows application manifest for every cargo target in this
+  package: the app binary, the lib unit-test harness, and benches.
+
+  Why this file exists rather than `tauri_build`'s built-in manifest:
+  `tauri_build` embeds its manifest through a resource script linked only into
+  the *binary*. A cargo test harness is a separate link unit that receives no
+  resource script, so once `tauri-plugin-dialog` (via `rfd`) put
+  `comctl32!TaskDialogIndirect` in the import table, every test executable
+  began dying at image load with STATUS_ENTRYPOINT_NOT_FOUND (0xC0000139) —
+  that export lives only in the side-by-side comctl32 **version 6** assembly,
+  and without a manifest the loader binds `System32\comctl32.dll` (version 5).
+
+  Cargo can scope linker arguments to bins (`rustc-link-arg-bins`) or to
+  declared `[[test]]` targets (`rustc-link-arg-tests`), but offers no way to
+  say "every target except bins", and the executable that actually breaks is
+  the *lib* unit-test harness, which `-tests` does not cover. Supplying one
+  manifest to every target via the unscoped `rustc-link-arg` is therefore the
+  only arrangement that covers the test harness — and it requires disabling
+  `tauri_build`'s own manifest, because two RT_MANIFEST resources with id 1 in
+  one link is a hard error (`CVT1100: duplicate resource` / `LNK1123`).
+
+  Content is deliberately byte-equivalent to `tauri_build`'s default
+  (`tauri-build/src/windows-app-manifest.xml`), so the shipping binary's
+  manifest is unchanged by this arrangement. Keep it that way: anything added
+  here ships in the app, not just in tests.
+-->
+<assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
+  <dependency>
+    <dependentAssembly>
+      <assemblyIdentity
+        type="win32"
+        name="Microsoft.Windows.Common-Controls"
+        version="6.0.0.0"
+        processorArchitecture="*"
+        publicKeyToken="6595b64144ccf1df"
+        language="*"
+      />
+    </dependentAssembly>
+  </dependency>
+</assembly>

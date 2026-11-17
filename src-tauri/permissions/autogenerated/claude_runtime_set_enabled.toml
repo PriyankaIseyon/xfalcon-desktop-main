@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-claude-runtime-set-enabled"
+description = "Enables the claude_runtime_set_enabled command without any pre-configured scope."
+commands.allow = ["claude_runtime_set_enabled"]
+
+[[permission]]
+identifier = "deny-claude-runtime-set-enabled"
+description = "Denies the claude_runtime_set_enabled command without any pre-configured scope."
+commands.deny = ["claude_runtime_set_enabled"]

@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-delight-greeting-claim"
+description = "Enables the delight_greeting_claim command without any pre-configured scope."
+commands.allow = ["delight_greeting_claim"]
+
+[[permission]]
+identifier = "deny-delight-greeting-claim"
+description = "Denies the delight_greeting_claim command without any pre-configured scope."
+commands.deny = ["delight_greeting_claim"]

@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-chat-run-retry"
+description = "Enables the chat_run_retry command without any pre-configured scope."
+commands.allow = ["chat_run_retry"]
+
+[[permission]]
+identifier = "deny-chat-run-retry"
+description = "Denies the chat_run_retry command without any pre-configured scope."
+commands.deny = ["chat_run_retry"]

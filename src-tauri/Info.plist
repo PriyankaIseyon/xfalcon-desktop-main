@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>NSAppleEventsUsageDescription</key>
+	<string>xFalcon asks Microsoft Word, PowerPoint or Excel to turn a file you chose into a PDF so you can preview it. The file is opened read-only and is not changed.</string>
+	<key>NSDesktopFolderUsageDescription</key>
+	<string>xFalcon reads files in the Desktop folders you choose so your assistant can work with them. What the assistant reads from them can be sent to the AI model you use.</string>
+	<key>NSDocumentsFolderUsageDescription</key>
+	<string>xFalcon reads files in the Documents folders you choose so your assistant can work with them. What the assistant reads from them can be sent to the AI model you use.</string>
+	<key>NSDownloadsFolderUsageDescription</key>
+	<string>xFalcon reads files in the Downloads folders you choose so your assistant can work with them. What the assistant reads from them can be sent to the AI model you use.</string>
+	<key>NSRemovableVolumesUsageDescription</key>
+	<string>xFalcon reads files on removable drives, such as USB drives, in the folders you choose so your assistant can work with them. What the assistant reads from them can be sent to the AI model you use.</string>
+</dict>
+</plist>

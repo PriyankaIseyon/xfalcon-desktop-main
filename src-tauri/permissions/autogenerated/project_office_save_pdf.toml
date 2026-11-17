@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-project-office-save-pdf"
+description = "Enables the project_office_save_pdf command without any pre-configured scope."
+commands.allow = ["project_office_save_pdf"]
+
+[[permission]]
+identifier = "deny-project-office-save-pdf"
+description = "Denies the project_office_save_pdf command without any pre-configured scope."
+commands.deny = ["project_office_save_pdf"]

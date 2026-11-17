@@ -1,0 +1,83 @@
+.report-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+.report-viewer-header {
+  flex-wrap: wrap;
+}
+.report-viewer-title {
+  flex: 1;
+  min-width: 8rem;
+}
+.report-tool-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 0;
+}
+.schedule-layout {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.25rem;
+}
+.schedule-calendar {
+  border: 1px solid var(--xf-border);
+  border-radius: var(--xf-r-lg);
+  padding: 0.5rem;
+}
+.schedule-calendar__heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+.schedule-calendar__days {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.15rem;
+  text-align: center;
+}
+.schedule-calendar__days button,
+.schedule-weekdays button {
+  border: 1px solid transparent;
+  border-radius: var(--xf-r-md);
+  min-height: 2rem;
+  cursor: pointer;
+  background: transparent;
+  color: var(--xf-ink);
+}
+.schedule-calendar__days button:hover:not(:disabled),
+.schedule-weekdays button:hover {
+  background: var(--xf-surface);
+}
+.schedule-calendar__days button[aria-pressed="true"],
+.schedule-weekdays button[aria-pressed="true"] {
+  background: color-mix(in srgb, var(--xf-accent) 15%, var(--xf-card));
+  border-color: var(--xf-accent);
+}
+.schedule-calendar__days button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.schedule-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.3rem;
+}
+.schedule-weekdays button {
+  border-color: var(--xf-border);
+}
+.schedule-summary {
+  border-radius: var(--xf-r-md);
+  background: var(--xf-surface);
+  padding: 0.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+@media (max-width: 600px) {
+  .schedule-layout {
+    grid-template-columns: 1fr;
+  }
+}

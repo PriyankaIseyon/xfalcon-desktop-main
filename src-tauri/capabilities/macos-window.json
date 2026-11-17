@@ -1,0 +1,15 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "main-window-macos",
+  "description": "Header drag and zoom for the main window on macOS only. The macOS title bar is an overlay, so the app header is the drag region there. Windows keeps its native title bar and does not get these permissions.",
+  "windows": [
+    "main"
+  ],
+  "platforms": [
+    "macOS"
+  ],
+  "permissions": [
+    "core:window:allow-start-dragging",
+    "core:window:allow-internal-toggle-maximize"
+  ]
+}

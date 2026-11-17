@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-project-document-read"
+description = "Enables the project_document_read command without any pre-configured scope."
+commands.allow = ["project_document_read"]
+
+[[permission]]
+identifier = "deny-project-document-read"
+description = "Denies the project_document_read command without any pre-configured scope."
+commands.deny = ["project_document_read"]

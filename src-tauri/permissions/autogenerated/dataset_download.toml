@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-dataset-download"
+description = "Enables the dataset_download command without any pre-configured scope."
+commands.allow = ["dataset_download"]
+
+[[permission]]
+identifier = "deny-dataset-download"
+description = "Denies the dataset_download command without any pre-configured scope."
+commands.deny = ["dataset_download"]

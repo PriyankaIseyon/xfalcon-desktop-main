@@ -1,0 +1,74 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "xFalcon",
+  "version": "0.5.51",
+  "identifier": "ai.xfalcon.desktop",
+  "build": {
+    "beforeDevCommand": "node scripts/run-vite-dev.mjs",
+    "devUrl": "http://127.0.0.1:1420",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../dist",
+    "removeUnusedCommands": true
+  },
+  "app": {
+    "withGlobalTauri": false,
+    "security": {
+      "capabilities": ["default", "main-window-macos"],
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self' ipc: http://ipc.localhost; img-src 'self' data: blob:; font-src 'self' data:; frame-src xf-preview: http://xf-preview.localhost; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'",
+      "devCsp": "default-src 'self'; script-src 'self' 'sha256-Z2/iFzh9VMlVkEOar1f/oSHWwQk3ve1qk/C2WdsC4Xk='; style-src 'self'; connect-src 'self' ipc: http://ipc.localhost ws://localhost:1421 ws://127.0.0.1:1421; img-src 'self' data: blob:; font-src 'self' data:; frame-src xf-preview: http://xf-preview.localhost; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'"
+    },
+    "windows": [
+      {
+        "title": "xFalcon",
+        "label": "main",
+        "create": false,
+        "url": "storage-migration.html",
+        "width": 1280,
+        "height": 800,
+        "minWidth": 900,
+        "minHeight": 600,
+        "visible": false,
+        "resizable": true,
+        "fullscreen": false,
+        "center": true,
+        "titleBarStyle": "Overlay",
+        "hiddenTitle": true,
+        "trafficLightPosition": { "x": 18, "y": 19 }
+      }
+    ]
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis", "msi", "app", "dmg"],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico",
+      "icons/icon.png"
+    ],
+    "windows": {
+      "webviewInstallMode": {
+        "type": "downloadBootstrapper"
+      },
+      "nsis": {
+        "installerHooks": "windows/hooks.nsh"
+      }
+    },
+    "macOS": {
+      "minimumSystemVersion": "13.0",
+      "entitlements": "entitlements.plist"
+    },
+    "resources": ["resources/tenant-config.json"],
+    "createUpdaterArtifacts": true
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDRDQkMzMzA4RkE2RkU1NTAKUldSUTVXLzZDRE84VElXSVA2OWJLT2N5d1hWVThtaElNQjkrV3VQTUY5NkVxYWFpd0JINU92czUK",
+      "endpoints": [
+        "https://github.com/iSeyon-Analytics/xfalcon-desktop/releases/latest/download/latest.json"
+      ]
+    }
+  }
+}

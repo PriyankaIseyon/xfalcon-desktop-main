@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-project-file-read-bytes"
+description = "Enables the project_file_read_bytes command without any pre-configured scope."
+commands.allow = ["project_file_read_bytes"]
+
+[[permission]]
+identifier = "deny-project-file-read-bytes"
+description = "Denies the project_file_read_bytes command without any pre-configured scope."
+commands.deny = ["project_file_read_bytes"]

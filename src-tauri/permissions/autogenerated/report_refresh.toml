@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-report-refresh"
+description = "Enables the report_refresh command without any pre-configured scope."
+commands.allow = ["report_refresh"]
+
+[[permission]]
+identifier = "deny-report-refresh"
+description = "Denies the report_refresh command without any pre-configured scope."
+commands.deny = ["report_refresh"]

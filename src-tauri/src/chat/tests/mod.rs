@@ -1,0 +1,13 @@
+mod da_repository;
+mod domain;
+mod encryption_smoke;
+mod history;
+mod live;
+mod local_search;
+mod mcp_selection;
+mod send_latency;
+mod service;
+mod sync;
+mod title;
+mod tool_run;
+mod wire;

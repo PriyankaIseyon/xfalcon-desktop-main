@@ -1,0 +1,469 @@
+/* ============================================================
+   xFalcon Desktop — DESIGN TOKENS (single source of truth)
+   Change the look here. Surfaces never hardcode values.
+   ============================================================ */
+/* ORIGINAL Google-shipped variable TTFs, unmodified (full glyph set, all
+   axes) — the subset woff2 pair was replaced by owner decision 2026-08-06;
+   a desktop installer has no page-weight budget. `font-display: block`
+   pairs with the fallback-free stacks below: the product face or a short
+   blank, never a silent lookalike. */
+@font-face {
+  font-family: "Google Sans";
+  src: url("/fonts/GoogleSans-Variable.ttf") format("truetype");
+  font-weight: 400 700; font-style: normal; font-display: block;
+}
+@font-face {
+  font-family: "Google Sans";
+  src: url("/fonts/GoogleSans-Italic.ttf") format("truetype");
+  font-weight: 400 700; font-style: italic; font-display: block;
+}
+@font-face {
+  font-family: "Geist Mono";
+  src: url("/fonts/GeistMono.woff2") format("woff2");
+  font-weight: 100 900; font-style: normal; font-display: block;
+}
+
+:root {
+  /* Native controls follow this, not the token layer: date pickers,
+     scrollbars, autofill, and the search clear button are drawn by the engine.
+     Without it the light theme borrows the OS preference and renders dark
+     pickers inside a light app. The dark block sets its own. */
+  color-scheme: light;
+
+  /* Surfaces (light, layered) */
+  --xf-canvas:        #ffffff;
+  --xf-surface:       #f5f8fc;
+  --xf-sidebar:       #f5f8fc;
+  --xf-header:        #f5f8fc;
+  --xf-table-header:  #edf2f9;
+  --xf-floating:      #ffffff;
+  --xf-surface-alt:   #edf2f9;
+  --xf-card:          #ffffff;
+  --xf-hover:         #edf2f9;
+  /* A track a raised control sits in (tabs, the destination well): a step
+     below the surface, so the white pill on it reads as lifted. */
+  --xf-sunken:        #edf2f9;
+  /* The destinations well (Chats/Projects/Datasets/Reports). Light keeps the
+     group flush with the surrounding white rather than boxed in a visibly
+     different grey -- the current destination is told apart by
+     `--xf-nav-selected` (the same cyan-tinted fill every other selected row
+     in this column uses), not by the group's own background. Dark still
+     recesses the well: `--xf-well-raised` (the hover preview) is a hair
+     above --xf-surface and below --xf-surface-alt there, so reusing either
+     of those would draw the hovered destination as the most recessed thing
+     in the group. */
+  --xf-well:          var(--xf-card);
+  --xf-well-raised:   var(--xf-card);
+  --xf-active:        #dce5ef;
+  --xf-elevated:      rgba(255,255,255,0.72); /* vibrancy material (use with blur) */
+  --xf-material-border: rgba(11, 18, 32, .1);
+  --xf-scrollbar: rgba(31, 41, 55, .28);
+  --xf-scrollbar-hover: rgba(31, 41, 55, .48);
+  /* The shadow at a scroll edge, saying content continues past it. */
+  --xf-scroll-edge: rgba(15, 23, 42, .16);
+  --xf-scrim: rgba(6, 17, 34, .34);
+
+  /* Ink */
+  --xf-ink:           #0b1220;
+  --xf-ink-2:         #44556b;
+  /* Dark enough to clear AA on the DARKEST light surface, not just on white.
+     At #6b7789 this read 4.09:1 on `--xf-surface-alt` and 4.24:1 on
+     `--xf-surface` -- so a muted table header, an unselected segment, and a
+     static chip all sat below 4.5:1 while the same colour passed on a card.
+     A muted role has to hold on every surface it is allowed to sit on. */
+  --xf-ink-3:         #606a79;
+  /* xfalcon-design has three inks, not four: every fainter step tried in the
+     product failed AA somewhere (#657186 was 4.35:1 on the sidebar). Kept as
+     an alias so existing `text-faint` uses read as muted. */
+  --xf-ink-faint:     var(--xf-ink-3);
+
+  /* Borders */
+  --xf-hairline:      #e6ecf4;
+  --xf-border:        #dce5ef;
+  --xf-border-strong: #c4d2e3;
+
+  /* Accent: xfalcon-design deep teal (tokens/tokens.css, DESIGN.md 1.5).
+     Teal reads as text and as a fill, so the text and fill variants share
+     one value. Bright cyan stays decoration only on light surfaces. */
+  --xf-accent:        #187288;
+  --xf-accent-hover:  #187288;
+  /* The fill of an accent button while it is hovered and while it is pressed. Not
+     `--xf-accent-hover`: that is the accent as TEXT on a light surface, dark
+     enough to read there, and as a fill it dropped the button's ink from 7:1 to
+     under 3:1 the moment the pointer arrived. These stay light enough to keep
+     `--xf-accent-ink` above 4.5:1 and still step visibly deeper. */
+  --xf-accent-fill-hover:  #10596b;
+  --xf-accent-fill-active: #0c4a59;
+  --xf-accent-ink:    #ffffff;            /* ink on accent fills: 5.52:1, 7.88:1 hovered */
+  --xf-accent-muted:  rgba(34,156,177,0.10);
+  --xf-accent-ring:   rgba(24,114,136,0.24);
+  --xf-focus:         #187288;
+  /* The falcon mark, one colour wherever it appears (Kyle, 2026-10-15): the
+     brand teal, the same as the "x" in the wordmark. Follows the accent in
+     each theme. */
+  --xf-mark:          var(--xf-accent);
+  --xf-selection:     rgba(46,209,237,0.28);
+
+  /* Model-authored identifiers inside prose. This is not danger ink: inline
+     code identifies a value, so it owns a distinct semantic role in both
+     themes instead of borrowing the error palette. */
+  --xf-inline-code:   #c42a5f;
+
+  /* Semantic */
+  --xf-danger:        #c0362c;  --xf-danger-bg: #fdf3f2;
+  /* Ink ON danger, not a surface borrowed as ink: the destructive button
+     used to paint its label with the card colour, which happens to contrast
+     in both themes today and would stop the day either one moves. */
+  --xf-danger-ink:    #ffffff;
+  --xf-success:       #137a4b;  --xf-success-bg:#eef7f2;
+  --xf-suggestion-blue: var(--xf-accent); /* info is the accent */
+  --xf-feedback-orange: var(--xf-danger);
+  --xf-warn:          #956000;  --xf-warn-bg:   #fdf6e9;
+
+  /* Chart (spec: dynamic-canvas-artifacts). Colour IS the data here, so the
+     series are their own scale rather than the accent ramp -- seven hues a
+     reader can tell apart, ordered so the first two are the two most often
+     compared. The chrome, in contrast, is the product's own muted ink and
+     border, so axis labels and grid lines answer the contrast setting exactly
+     as the rest of the app does. `--xf-chart-surface` is what a point ring and
+     a pie separator are cut out of: the card behind them, never white. */
+  /* xfalcon-design series 1-6, validated with the dataviz validator on #ffffff
+     and #f6f7f9 (worst adjacent CVD pair 11.5 dE). Fixed order, never cycled:
+     a 7th series and beyond folds into --xf-chart-7, the overflow grey. */
+  --xf-chart-1: #1596b0;
+  --xf-chart-2: #7851a9;
+  --xf-chart-3: #c77700;
+  --xf-chart-4: #2a78d6;
+  --xf-chart-5: #d55181;
+  --xf-chart-6: #008300;
+  --xf-chart-7: #606a79;
+  --xf-chart-axis: var(--xf-ink-3);
+  --xf-chart-grid: var(--xf-border);
+  --xf-chart-surface: var(--xf-card);
+
+  /* Elevation (soft neutral, no glow) */
+  --xf-elev-1: 0 1px 2px rgba(11,18,32,.04), 0 1px 1px rgba(11,18,32,.04);
+  --xf-elev-2: 0 4px 12px rgba(11,18,32,.07), 0 1px 3px rgba(11,18,32,.05);
+  --xf-elev-3: 0 12px 28px rgba(11,18,32,.10), 0 4px 10px rgba(11,18,32,.06);
+  /* Zero-offset, so it reads evenly on all four sides rather than the
+     downward-only lean of --xf-elev-*. Composer-only: the one card whose
+     bottom edge (against the docked footer) needs the same lift as its top. */
+  --xf-elev-ambient: 0 0 18px rgba(11,18,32,.08);
+
+  /* Radii */
+  --xf-r-xs: 4px; --xf-r-sm: 6px; --xf-r-md: 8px; --xf-r-lg: 12px;
+  --xf-r-xl: 16px; --xf-r-2xl: 20px; --xf-r-pill: 999px;
+
+  /* Motion */
+  --xf-dur-instant: 80ms; --xf-dur-fast: 120ms; --xf-dur-base: 180ms;
+  --xf-dur-slow: 240ms; --xf-dur-page: 320ms;
+  /* Menus, tooltips, palettes, and dialogs, in and out. Long enough to settle
+     smoothly, and snappy on `--xf-ease-soft`: half the travel is done in the
+     first 50ms and nearly all of it by 200ms. */
+  --xf-dur-overlay: 500ms;
+  --xf-ease-soft:  cubic-bezier(.16,1,.3,1);
+  --xf-ease-spring:cubic-bezier(.34,1.56,.64,1);
+  --xf-ease-panel: cubic-bezier(.165,.84,.44,1);
+  --xf-ease-material: cubic-bezier(.4,0,.2,1);
+
+  /* Z-index scale */
+  --xf-z-dropdown: 20; --xf-z-sticky: 30; --xf-z-overlay: 40;
+  --xf-z-modal: 50; --xf-z-toast: 200; --xf-z-tooltip: 300;
+
+  /* Typography — DELIBERATELY fallback-free (owner directive 2026-08-06):
+     the bundled faces either render or the failure is unmissable (browser
+     last-resort serif), never silently masked by Segoe/system lookalikes.
+     Glyphs missing from the faces (emoji, non-Latin) still use the system
+     last-resort chain — that path needs no listed fallback. */
+  --xf-font-sans: "Google Sans";
+  --xf-font-mono: "Geist Mono";
+  /* The reading-size control (spec: settings-appearance) is ONE multiplier
+     over the whole ramp, set by `[data-font-size]` below. Scaling roles
+     independently would let the ramp's ratios drift apart at some sizes and
+     not others; one factor keeps display:body:caption fixed at every step. */
+  --xf-type-scale: 1;
+  --xf-type-display: calc(1.75rem * var(--xf-type-scale));
+  --xf-type-title: calc(1.25rem * var(--xf-type-scale));
+  --xf-type-heading: calc(1rem * var(--xf-type-scale));
+  /* Chat transcript + composer — web .prose-chat parity, verbatim: fluid
+     15px floor → 17px ceiling so a wide desktop window reads at the same
+     size the web app does on the same monitor. The multiplier scales all
+     three terms, so the window-width response survives every step. */
+  --xf-type-reading: clamp(
+    calc(0.9375rem * var(--xf-type-scale)),
+    calc((0.89rem + 0.21vw) * var(--xf-type-scale)),
+    calc(1.0625rem * var(--xf-type-scale)));
+  --xf-type-body: calc(.875rem * var(--xf-type-scale));
+  /* Two sizes per screen (xfalcon-design DESIGN.md 2.3): every piece of chrome
+     (sidebar, title bar, composer meta, suggestion cards) reads at this one size,
+     and the conversation and composer input at --xf-type-reading. Headings on
+     the empty state are the only other size. Set per reading size below. */
+  --xf-type-chrome: .875rem;
+  --xf-type-label: calc(.8125rem * var(--xf-type-scale));
+  --xf-type-caption: calc(.75rem * var(--xf-type-scale));
+  --xf-type-micro: calc(.6875rem * var(--xf-type-scale));
+
+  /* Shell geometry */
+  --xf-layout-gap: 1px;
+  --xf-panel-radius: var(--xf-r-xs);
+  /* 17rem + 5%. The extra ~14px is spent entirely on chat names, which are the
+     longest strings in the column and the ones that were truncating hardest
+     once the hover actions claimed their 3.5rem. */
+  --xf-sidebar-width: 19rem;
+  /* Collapsed is a rail, not nothing: navigation-rail sizing runs 48-64px, and
+     3.5rem holds a 2.25rem control with room either side. A narrow window has
+     no room for a rail beside the workspace and overrides this to zero. */
+  --xf-sidebar-collapsed: 3.5rem;
+  --xf-content-max: 52rem;
+  --xf-titlebar-height: 3.25rem;
+
+  /* Chat reading column (spec: chat-thread-layout). ONE measure drives every
+     chat width: messages render at measure ×1.05, the composer at ×0.90, so
+     the composer reads as sitting "inside" the reading column. Steps below.
+     Widened 15% from 48rem — the ratios above are multipliers, so both the
+     thread and the composer take the increase together and their relationship
+     is untouched. */
+  --xf-chat-measure: 55.2rem;
+
+  /* Inline document preview height (spec: chat-rich-content). Viewport-aware
+     so a report reads without double-scroll claustrophobia on a large
+     window, still bounded inside the transcript. The building placeholder
+     reserves the SAME height, so stream→card settles never shift. */
+  --xf-preview-height: clamp(320px, 58vh, 620px);
+
+  /* User bubble (spec: chat-thread-layout) — a dedicated surface, deliberately
+     distinct from --xf-card so "mine" never blends into cards/tool chrome. */
+  --xf-bubble-bg:     #f5f8fc;
+  --xf-bubble-border: #dce5ef;
+  --xf-bubble-fg:     #0b1220;
+
+  /* Spacing (8px grid) */
+  --xf-space-1: .25rem;
+  --xf-space-2: .5rem;
+  --xf-space-3: .75rem;
+  --xf-space-4: 1rem;
+  --xf-space-5: 1.25rem;
+  --xf-space-6: 1.5rem;
+  --xf-space-8: 2rem;
+  --xf-space-10: 2.5rem;
+  --xf-space-12: 3rem;
+
+  /* Control geometry. These three fixed roles replace one-off 28, 30, 34,
+     and 38px heights. Reading size changes type, not the product's control
+     scale; coarse pointers use the separate hit-target minimum below. */
+  --xf-control-compact: 2rem;
+  --xf-control-default: 2.25rem;
+  --xf-control-prominent: 2.5rem;
+  --xf-hit-target-coarse: 2.75rem;
+
+  /* Icon glyphs pair with the three control roles. Lucide's regular stroke
+     is the product default; strong strokes remain reserved for state marks. */
+  --xf-icon-compact: .875rem;
+  --xf-icon-default: 1rem;
+  --xf-icon-prominent: 1.125rem;
+  --xf-icon-stroke-regular: 1.8;
+  --xf-icon-stroke-emphasis: 2.2;
+}
+
+@media (min-width: 1280px) {
+  /* The wide step, carrying the same 15% as the base measure above. */
+  :root { --xf-chat-measure: 62.1rem; }
+}
+
+/* Reading size (spec: settings-appearance). `medium` is what the app read at
+   before the control existed; `small` is the default, a step tighter.
+   Chrome (sidebar, title bar, composer meta) is not scaled from the ramp: it
+   has one fixed size per setting, 12 / 14 / 16px, so the default sidebar reads
+   at 12px like Claude desktop and VS Code (Kyle, 2026-10-15). The conversation
+   stays on --xf-type-reading, a step larger. Equal specificity to `:root`, so these must
+   stay AFTER it — the same ordering rule `[data-theme="dark"]` below relies
+   on. */
+[data-font-size="small"]  { --xf-type-scale: .92; --xf-type-chrome: .75rem; }
+[data-font-size="medium"] { --xf-type-scale: 1;   --xf-type-chrome: .875rem; }
+[data-font-size="large"]  { --xf-type-scale: 1.12; --xf-type-chrome: 1rem; }
+
+/* Dark palette. Two-level surface rule (spec: app-shell-material): the
+   window base (--xf-canvas) is the dimmest tone; every elevated surface
+   (--xf-card, --xf-surface-alt, composer, popovers) sits LIGHTER than it —
+   elevation is brightness, never a darker inset or borders alone. */
+[data-theme="dark"] {
+  color-scheme: dark;
+  --xf-canvas: #111317;
+  --xf-surface: #171a20;
+  --xf-sidebar: #171c25;
+  --xf-header: #1c2330;
+  --xf-table-header: #202733;
+  --xf-floating: #252c38;
+  --xf-surface-alt: #1d2128;
+  --xf-card: #181b21;
+  --xf-hover: #232832;
+  --xf-sunken: #111317;
+  --xf-well: #14171d;
+  --xf-well-raised: #262c36;
+  --xf-active: #2b323d;
+  --xf-bubble-bg: #212630;
+  --xf-bubble-border: #333b48;
+  --xf-bubble-fg: #f4f6f8;
+  --xf-elevated: rgba(24, 27, 33, .86);
+  --xf-material-border: rgba(255, 255, 255, .12);
+  --xf-scrollbar: rgba(226, 232, 240, .28);
+  --xf-scrollbar-hover: rgba(226, 232, 240, .48);
+  /* Heavier on dark, where a light-theme shadow would be invisible. */
+  --xf-scroll-edge: rgba(0, 0, 0, .45);
+  --xf-scrim: rgba(0, 0, 0, .56);
+  --xf-ink: #f4f6f8;
+  --xf-ink-2: #c4cad2;
+  --xf-ink-3: #98a2af;
+  --xf-ink-faint: #737e8c;
+  --xf-hairline: #252a32;
+  --xf-border: #303640;
+  --xf-border-strong: #414956;
+  --xf-accent: #5ed8ec;
+  --xf-accent-hover: #84e3f1;
+  --xf-accent-fill-hover: #84e3f1;
+  --xf-accent-fill-active: #49c3d8;
+  --xf-accent-ink: #071d22;
+  --xf-accent-muted: rgba(94, 216, 236, .12);
+  --xf-accent-ring: rgba(94, 216, 236, .36);
+  --xf-focus: #7ee7f7;
+  --xf-selection: rgba(94, 216, 236, .28);
+  --xf-inline-code: #ff8fbd;
+  --xf-danger: #ff7b7b;
+  --xf-danger-bg: #391c20;
+  --xf-danger-ink: #2b0f10;
+  --xf-success: #62d98a;
+  --xf-suggestion-blue: #79a8ff;
+  --xf-feedback-orange: #ea580c;
+  --xf-success-bg: #163022;
+  --xf-warn: #f2c46d;
+  --xf-warn-bg: #382b16;
+  /* Lifted off the 600-level: those hues carry about 3:1 on the light canvas
+     and under 2:1 on this one, so a dark chart drawn in them loses the
+     distinctions it exists to make. */
+  /* xfalcon-design dark series, validated on #181b21 and #111317 as well as
+     navy (worst adjacent CVD pair 9.8 dE). Chart-7 is the overflow grey. */
+  --xf-chart-1: #1fa5c2;
+  --xf-chart-2: #8b63d6;
+  --xf-chart-3: #c08327;
+  --xf-chart-4: #4b8fe6;
+  --xf-chart-5: #d8669a;
+  --xf-chart-6: #2f9e44;
+  --xf-chart-7: #848c9c;
+  --xf-elev-1: 0 1px 2px rgba(0, 0, 0, .28);
+  --xf-elev-2: 0 8px 24px rgba(0, 0, 0, .32);
+  --xf-elev-3: 0 18px 44px rgba(0, 0, 0, .42);
+  --xf-elev-ambient: 0 0 22px rgba(0, 0, 0, .38);
+}
+
+@media (prefers-contrast: more) {
+  :root {
+    --xf-ink-2: #253044;
+    --xf-ink-3: #3f4b5d;
+    --xf-border: #657084;
+    --xf-border-strong: #252e3e;
+    --xf-accent-ring: rgba(0, 110, 138, .72);
+    --xf-bubble-border: #657084;
+    --xf-chart-1: #1596b0;
+    --xf-chart-2: #7851a9;
+    --xf-chart-3: #c77700;
+    --xf-chart-4: #2a78d6;
+    --xf-chart-5: #d55181;
+    --xf-chart-6: #008300;
+    --xf-chart-7: #606a79;
+  }
+
+  [data-theme="dark"] {
+    --xf-ink-2: #e1e6ec;
+    --xf-ink-3: #c4ccd5;
+    --xf-border: #929cab;
+    --xf-border-strong: #d3d9e0;
+    --xf-accent-ring: rgba(126, 231, 247, .82);
+    --xf-bubble-border: #929cab;
+    --xf-chart-1: #1fa5c2;
+    --xf-chart-2: #8b63d6;
+    --xf-chart-3: #c08327;
+    --xf-chart-4: #4b8fe6;
+    --xf-chart-5: #d8669a;
+    --xf-chart-6: #2f9e44;
+    --xf-chart-7: #848c9c;
+  }
+}
+
+/* Map semantic utility names onto the runtime vars (theme-aware). */
+@theme inline {
+  --color-background:    var(--xf-canvas);
+  --color-surface:       var(--xf-surface);
+  --color-surface-alt:   var(--xf-surface-alt);
+  --color-card:          var(--xf-card);
+  --color-hover:         var(--xf-hover);
+  --color-active:        var(--xf-active);
+  --color-foreground:    var(--xf-ink);
+  --color-secondary:     var(--xf-ink-2);
+  --color-muted:         var(--xf-ink-3);
+  --color-faint:         var(--xf-ink-faint);
+  --color-hairline:      var(--xf-hairline);
+  --color-default:       var(--xf-border);
+  --color-strong:        var(--xf-border-strong);
+  --color-accent:        var(--xf-accent);
+  --color-accent-hover:  var(--xf-accent-hover);
+  --color-accent-fill-hover:  var(--xf-accent-fill-hover);
+  --color-accent-fill-active: var(--xf-accent-fill-active);
+  --color-accent-ink:    var(--xf-accent-ink);
+  --color-accent-muted:  var(--xf-accent-muted);
+  --color-accent-ring:   var(--xf-accent-ring);
+  --color-focus:         var(--xf-focus);
+  --color-elevated:      var(--xf-elevated);
+  --color-danger:        var(--xf-danger);
+  --color-danger-ink:    var(--xf-danger-ink);
+  --color-danger-bg:     var(--xf-danger-bg);
+  --color-success:       var(--xf-success);
+  --color-success-bg:    var(--xf-success-bg);
+  --color-warn:          var(--xf-warn);
+  --color-warn-bg:       var(--xf-warn-bg);
+  --color-bubble:        var(--xf-bubble-bg);
+  --color-bubble-border: var(--xf-bubble-border);
+  --color-bubble-fg:     var(--xf-bubble-fg);
+
+  --radius-xs: var(--xf-r-xs);   --radius-sm: var(--xf-r-sm);
+  --radius-md: var(--xf-r-md);   --radius-lg: var(--xf-r-lg);
+  --radius-xl: var(--xf-r-xl);   --radius-2xl: var(--xf-r-2xl);
+  --radius-pill: var(--xf-r-pill);
+
+  --spacing-control-compact: var(--xf-control-compact);
+  --spacing-control-default: var(--xf-control-default);
+  --spacing-control-prominent: var(--xf-control-prominent);
+
+  --font-sans: var(--xf-font-sans);
+  --font-mono: var(--xf-font-mono);
+
+  --shadow-e1: var(--xf-elev-1);
+  --shadow-e2: var(--xf-elev-2);
+  --shadow-e3: var(--xf-elev-3);
+
+  --ease-soft:     var(--xf-ease-soft);
+  --ease-spring:   var(--xf-ease-spring);
+  --ease-panel:    var(--xf-ease-panel);
+  --ease-material: var(--xf-ease-material);
+
+  /* Durations — exposed so `duration-fast/base/slow/…` are token-backed
+     utilities (no more `duration-[180ms]` magic numbers). */
+  --duration-instant: var(--xf-dur-instant);
+  --duration-fast:    var(--xf-dur-fast);
+  --duration-base:    var(--xf-dur-base);
+  --duration-slow:    var(--xf-dur-slow);
+  --duration-page:    var(--xf-dur-page);
+
+  /* Eyebrow/meta text. Aliased onto the ramp's micro role rather than
+     restating its value, so it scales with the reading size too. */
+  --text-2xs: var(--xf-type-micro);
+  /* Chat reading size — transcript and composer share it (`text-reading`). */
+  --text-reading: var(--xf-type-reading);
+  /* Tailwind's own `text-xs`/`text-sm` land on the same ramp for the same
+     reason. They are hard px otherwise, so every `text-xs` label in the app —
+     tool-trail summaries, chips, table cells, field hints — stayed put while
+     the surface around it grew, and the reading-size setting only half
+     applied. The rem values are identical at scale 1, so this changes nothing
+     at the default and everything at the other two settings. */
+  --text-xs: var(--xf-type-caption);
+  --text-sm: var(--xf-type-body);
+}

@@ -1,0 +1,60 @@
+[advisories]
+ignore = [
+    # Tauri's current Linux backend still uses archived GTK3 bindings. The advisory
+    # DB withdrew all ten ids below on 2026-08-14, and cargo-deny 0.19.4 reports
+    # none of them even with no ignore list. Each line names its crate.
+    "RUSTSEC-2024-0411", # gdkwayland-sys 0.18.2. Reviewed 2026-10-16.
+    "RUSTSEC-2024-0412", # gdk 0.18.2. Reviewed 2026-10-16.
+    "RUSTSEC-2024-0413", # atk 0.18.2. Reviewed 2026-10-16.
+    "RUSTSEC-2024-0414", # gdkx11-sys 0.18.2. Reviewed 2026-10-16.
+    "RUSTSEC-2024-0415", # gtk 0.18.2. Reviewed 2026-10-16.
+    "RUSTSEC-2024-0416", # atk-sys 0.18.2. Reviewed 2026-10-16.
+    "RUSTSEC-2024-0417", # gdkx11 0.18.2. Reviewed 2026-10-16.
+    "RUSTSEC-2024-0418", # gdk-sys 0.18.2. Reviewed 2026-10-16.
+    "RUSTSEC-2024-0419", # gtk3-macros 0.18.2. Reviewed 2026-10-16.
+    "RUSTSEC-2024-0420", # gtk-sys 0.18.2. Reviewed 2026-10-16.
+    # Transitive macro dependency of those GTK3 bindings; no safe upgrade is available.
+    "RUSTSEC-2024-0370", # proc-macro-error 1.0.4 (via gtk3-macros, glib-macros). Reviewed 2026-10-16.
+    # Tauri's urlpattern dependency uses the archived rust-unic family.
+    "RUSTSEC-2025-0075", # unic-char-range 0.9.0. Reviewed 2026-10-16.
+    "RUSTSEC-2025-0080", # unic-common 0.9.0. Reviewed 2026-10-16.
+    "RUSTSEC-2025-0081", # unic-char-property 0.9.0. Reviewed 2026-10-16.
+    "RUSTSEC-2025-0098", # unic-ucd-version 0.9.0. Reviewed 2026-10-16.
+    "RUSTSEC-2025-0100", # unic-ucd-ident 0.9.0. Reviewed 2026-10-16.
+]
+
+[bans]
+multiple-versions = "warn"
+wildcards = "deny"
+# xfalcon-contracts is an in-workspace sibling crate referenced by path only
+# (no floating version) -- the path itself pins exactly which code is used,
+# so this isn't the unpinned-version risk `wildcards` guards against.
+allow-wildcard-paths = true
+
+[licenses]
+allow = [
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception", # LLVM exception used by target-lexicon.
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "BSL-1.0",
+    "CC0-1.0", # Vetted public-domain dedication used by tiny-keccak.
+    "CDLA-Permissive-2.0", # Vetted root-certificate data license.
+    "ISC",
+    "MIT",
+    "MIT-0", # Vetted permissive (MIT sans attribution clause) used by borrow-or-share (via jsonschema).
+    "MPL-2.0",
+    "Unicode-3.0",
+    "Zlib",
+]
+confidence-threshold = 0.8
+
+[licenses.private]
+# Workspace crates are proprietary, unpublished software covered by the root LICENSE.
+ignore = true
+
+[sources]
+allow-git = []
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+unknown-git = "deny"
+unknown-registry = "deny"
